@@ -21,7 +21,9 @@ export default function Pricing({
 
   return (
     <section
-      className={"panel pricing-panel section-panel" + (active ? "" : " is-inactive")}
+      className={
+        "panel pricing-panel section-panel" + (active ? "" : " is-inactive")
+      }
       id="pricing"
       aria-labelledby="pricing-title"
     >
@@ -40,12 +42,14 @@ export default function Pricing({
 
       <div className="panel-body pricing-body">
         {!active && (
-          <p className="inactive-note">
-            Harga jual mengikuti total HPP.
-          </p>
+          <p className="inactive-note">Harga jual mengikuti total HPP.</p>
         )}
         <fieldset className="section-fields pricing-fields" disabled={!active}>
-          <div className="profit-presets" role="group" aria-label="Pilihan margin">
+          <div
+            className="profit-presets"
+            role="group"
+            aria-label="Pilihan margin"
+          >
             {presets.map((preset) => {
               const isSelected = selectedPercent === preset.value;
               return (
@@ -92,17 +96,6 @@ export default function Pricing({
               )}
             </Field>
           </div>
-
-          {active && (selectedPercent < 30 || result.lowMargin) && (
-            <Callout.Root className="margin-warning" color="amber" size="1">
-              <Callout.Icon>
-                <ExclamationTriangleIcon aria-hidden="true" />
-              </Callout.Icon>
-              <Callout.Text>
-                Margin di bawah 30% — cek kembali biaya sebelum menetapkan harga.
-              </Callout.Text>
-            </Callout.Root>
-          )}
         </fieldset>
       </div>
     </section>
