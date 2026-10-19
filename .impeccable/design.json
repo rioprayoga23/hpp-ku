@@ -1,0 +1,474 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T05:33:41Z",
+  "title": "Design System: HPP-Ku",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "canonical": "#2563eb",
+        "tonalRamp": [
+          "#00062A",
+          "#00185C",
+          "#002B93",
+          "#0543CA",
+          "#2664EC",
+          "#4F89FF",
+          "#9BBEFF",
+          "#E6EFFF"
+        ]
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "Pale Action Blue",
+        "canonical": "#eaf1ff",
+        "tonalRamp": [
+          "#070B14",
+          "#1D222C",
+          "#353B45",
+          "#505561",
+          "#6C727E",
+          "#898F9C",
+          "#B7BECB",
+          "#E8EFFD"
+        ]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Cool Canvas",
+        "canonical": "#f6f8fc",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#202224",
+          "#393A3E",
+          "#545559",
+          "#707275",
+          "#8D8F93",
+          "#BCBEC1",
+          "#ECEEF2"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#222222",
+          "#3A3A3A",
+          "#555555",
+          "#717171",
+          "#8F8F8F",
+          "#BEBEBE",
+          "#EEEEEE"
+        ]
+      },
+      "surface-soft": {
+        "role": "neutral",
+        "displayName": "Soft Cool Surface",
+        "canonical": "#f2f5fa",
+        "tonalRamp": [
+          "#090B0E",
+          "#202225",
+          "#383B3E",
+          "#535559",
+          "#6F7276",
+          "#8D8F94",
+          "#BBBEC3",
+          "#ECEFF4"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "canonical": "#152238",
+        "tonalRamp": [
+          "#020A1E",
+          "#152137",
+          "#2D3B53",
+          "#47566F",
+          "#62728D",
+          "#7F90AC",
+          "#ADBFDC",
+          "#E6EFFF"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Muted",
+        "canonical": "#5d6b80",
+        "tonalRamp": [
+          "#030B1B",
+          "#162233",
+          "#2F3B4E",
+          "#49566A",
+          "#647388",
+          "#8190A6",
+          "#AFBFD6",
+          "#E5EFFF"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Fine Divider",
+        "canonical": "#dce3ed",
+        "tonalRamp": [
+          "#070B12",
+          "#1D2229",
+          "#353B43",
+          "#50565E",
+          "#6C727B",
+          "#899099",
+          "#B8BEC8",
+          "#E8EFF9"
+        ]
+      },
+      "danger": {
+        "role": "error",
+        "displayName": "Alert Red",
+        "canonical": "#b42318",
+        "tonalRamp": [
+          "#1F0000",
+          "#470100",
+          "#730200",
+          "#A20501",
+          "#C53629",
+          "#E95948",
+          "#FFA192",
+          "#FFE9E5"
+        ]
+      },
+      "dark-page": {
+        "role": "neutral",
+        "displayName": "Night Canvas",
+        "canonical": "#141a24",
+        "tonalRamp": [
+          "#060B14",
+          "#1C222C",
+          "#343B46",
+          "#4E5662",
+          "#6A727F",
+          "#88909D",
+          "#B6BECC",
+          "#E6EFFE"
+        ]
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Night Surface",
+        "canonical": "#1c2533",
+        "tonalRamp": [
+          "#050B17",
+          "#192230",
+          "#313B4A",
+          "#4C5666",
+          "#677283",
+          "#8590A2",
+          "#B3BFD1",
+          "#E5EFFF"
+        ]
+      },
+      "dark-surface-soft": {
+        "role": "neutral",
+        "displayName": "Night Soft Surface",
+        "canonical": "#242f40",
+        "tonalRamp": [
+          "#040B19",
+          "#172232",
+          "#303B4D",
+          "#4A5669",
+          "#667286",
+          "#8390A5",
+          "#B1BFD4",
+          "#E5EFFF"
+        ]
+      },
+      "dark-ink": {
+        "role": "neutral",
+        "displayName": "Light Ink",
+        "canonical": "#edf3fc",
+        "tonalRamp": [
+          "#080B11",
+          "#1E2228",
+          "#363B42",
+          "#51565D",
+          "#6D727A",
+          "#8A9098",
+          "#B8BEC7",
+          "#E9EFF8"
+        ]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Night Muted",
+        "canonical": "#aab8cb",
+        "tonalRamp": [
+          "#040B18",
+          "#182231",
+          "#303B4B",
+          "#4A5667",
+          "#667384",
+          "#8390A3",
+          "#B1BFD2",
+          "#E4F0FF"
+        ]
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "Night Divider",
+        "canonical": "#344258",
+        "tonalRamp": [
+          "#020B1D",
+          "#152236",
+          "#2D3B51",
+          "#47566D",
+          "#63728B",
+          "#8090A9",
+          "#AEBFD9",
+          "#E5EFFF"
+        ]
+      },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "Night Action Blue",
+        "canonical": "#84adff",
+        "tonalRamp": [
+          "#00052C",
+          "#01175D",
+          "#15347B",
+          "#2F519B",
+          "#4A6FBB",
+          "#668DDD",
+          "#9CBEFF",
+          "#E6EFFF"
+        ]
+      },
+      "dark-primary-soft": {
+        "role": "primary",
+        "displayName": "Night Soft Blue",
+        "canonical": "#253754",
+        "tonalRamp": [
+          "#000922",
+          "#10213C",
+          "#293B58",
+          "#425675",
+          "#5E7293",
+          "#7B90B2",
+          "#A9BFE3",
+          "#E5EFFF"
+        ]
+      },
+      "dark-danger": {
+        "role": "error",
+        "displayName": "Night Alert",
+        "canonical": "#ffb4ab",
+        "tonalRamp": [
+          "#1F0001",
+          "#430707",
+          "#612420",
+          "#80403A",
+          "#9F5C55",
+          "#C07A72",
+          "#F2A89F",
+          "#FFE9E6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Wordmark Serif",
+        "purpose": "The HPP-Ku wordmark only."
+      },
+      "headline": {
+        "displayName": "Interface Headline",
+        "purpose": "Compact page title in the sans-serif interface face."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Calculator section and panel headings."
+      },
+      "body": {
+        "displayName": "Interface Body",
+        "purpose": "Form values, table content, and explanatory copy."
+      },
+      "label": {
+        "displayName": "Field Label",
+        "purpose": "Visible form labels and compact control labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating-notice",
+        "value": "0 8px 28px rgba(28,48,78,.08)",
+        "purpose": "Lift the transient status notice above the page in light appearance."
+      },
+      {
+        "name": "floating-notice-dark",
+        "value": "0 8px 28px rgba(0,0,0,.2)",
+        "purpose": "Lift the transient status notice above the page in dark appearance."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(.2,.7,.25,1)",
+        "purpose": "Short state transitions for controls and disclosure arrows."
+      },
+      {
+        "name": "button-press",
+        "value": "transform 160ms var(--curve)",
+        "purpose": "Subtle pressed response on buttons."
+      },
+      {
+        "name": "disclosure-arrow",
+        "value": "transform 180ms var(--curve)",
+        "purpose": "Rotate the overhead disclosure arrow when open; reduced-motion disables transitions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow-mobile",
+        "value": "359px"
+      },
+      {
+        "name": "mobile",
+        "value": "767px"
+      },
+      {
+        "name": "single-column",
+        "value": "1023px"
+      },
+      {
+        "name": "compact-gutters",
+        "value": "1279px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A high-contrast blue action for copying or applying a recipe.",
+      "html": "<button class=\"ds-btn-primary\">Salin resep</button>",
+      "css": ".ds-btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:4px;min-height:42px;padding:10px 14px;font:600 14px/1.2 'Plus Jakarta Sans',Arial,sans-serif;transition:transform 160ms var(--curve)}.ds-btn-primary:hover{filter:brightness(.94)}.ds-btn-primary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.ds-btn-primary:active:not(:disabled){transform:scale(.98)}@media(max-width:767px){.ds-btn-primary{min-height:44px}}"
+    },
+    {
+      "name": "Secondary Action Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A soft blue add action with a quiet visual weight.",
+      "html": "<button class=\"ds-btn-secondary\">Tambah bahan</button>",
+      "css": ".ds-btn-secondary{background:var(--accent-soft);color:var(--accent);border:1px solid transparent;border-radius:4px;min-height:42px;padding:10px 14px;font:600 14px/1.2 'Plus Jakarta Sans',Arial,sans-serif;transition:background 160ms var(--curve),transform 160ms var(--curve)}.ds-btn-secondary:hover{filter:brightness(.97)}.ds-btn-secondary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.ds-btn-secondary:active:not(:disabled){transform:scale(.98)}@media(max-width:767px){.ds-btn-secondary{min-height:44px}}"
+    },
+    {
+      "name": "Labeled Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A visible label paired with a compact theme-aware field.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-label\">Nama minuman</span><input class=\"ds-input\" value=\"Kopi Brown Sugar\" aria-label=\"Nama minuman\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;color:var(--ink);font:600 12px/1.5 'Plus Jakarta Sans',Arial,sans-serif}.ds-input{width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--ink);font:400 14px/1.4 'Plus Jakarta Sans',Arial,sans-serif}.ds-input:focus-visible{outline:2px solid var(--accent);outline-offset:-1px}.ds-input[aria-invalid=true]{box-shadow:inset 0 0 0 1px var(--danger)}@media(max-width:767px){.ds-input{min-height:40px;font-size:14px}}"
+    },
+    {
+      "name": "Active Count Badge",
+      "kind": "chip",
+      "refersTo": "badge-active",
+      "description": "A muted count of active components in the ingredient table.",
+      "html": "<span class=\"ds-badge\">7/7 aktif</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;white-space:nowrap;padding:4px 8px;border:0;border-radius:4px;background:var(--surface-soft);color:var(--muted);font:600 11px/1.4 'Plus Jakarta Sans',Arial,sans-serif}"
+    },
+    {
+      "name": "Compact App Header",
+      "kind": "nav",
+      "refersTo": "header",
+      "description": "The sticky wordmark, autosave state, and theme control.",
+      "html": "<header class=\"ds-header\"><a class=\"ds-brand\" href=\"#\"><span class=\"ds-wordmark\">HPP-Ku</span><span class=\"ds-product\">HPP &amp; harga jual</span></a><span class=\"ds-save\">Tersimpan di perangkat</span><button class=\"ds-theme\" type=\"button\" aria-label=\"Ganti tema\">Tema</button></header>",
+      "css": ".ds-header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;padding:12px 40px;border-bottom:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:'Plus Jakarta Sans',Arial,sans-serif}.ds-brand{display:flex;align-items:center;gap:16px;color:inherit;text-decoration:none}.ds-wordmark{font:600 38px/1 'Cormorant Garamond',Georgia,serif;letter-spacing:-.04em}.ds-product,.ds-save{color:var(--muted);font-size:12px}.ds-product{padding-left:16px;border-left:1px solid var(--border)}.ds-theme{min-width:42px;min-height:42px;border:1px solid var(--border);border-radius:4px;background:var(--surface-soft);color:var(--ink);font:600 12px 'Plus Jakarta Sans',Arial,sans-serif}@media(max-width:767px){.ds-header{min-height:64px;padding:10px 16px}.ds-wordmark{font-size:32px}.ds-product{font-size:11px;padding-left:12px}.ds-save{display:none}.ds-theme{min-width:44px;min-height:44px}}"
+    },
+    {
+      "name": "Ingredient Table",
+      "kind": "custom",
+      "refersTo": "table-ingredient",
+      "description": "One component per row, with a sticky name column and contained horizontal scroll.",
+      "html": "<div class=\"ds-table-scroll\" role=\"region\" aria-label=\"Tabel bahan dan kemasan\" tabindex=\"0\"><table class=\"ds-table\"><thead><tr><th>Komponen</th><th>Harga beli</th><th>Isi kemasan</th><th>Pakai / cup</th><th>Biaya / cup</th></tr></thead><tbody><tr><td class=\"ds-sticky\"><input class=\"ds-input\" value=\"Espresso\" aria-label=\"Nama komponen\"><div class=\"ds-row-tools\"><button class=\"ds-select\">Bahan⌄</button><label class=\"ds-switch\"><input type=\"checkbox\" checked> Aktif</label></div></td><td>Rp 90.000</td><td>1.000 ml</td><td>18 ml</td><td><div class=\"ds-result\"><strong>Rp 1.620</strong><button class=\"ds-action\" aria-label=\"Hapus komponen\">×</button></div></td></tr></tbody></table></div>",
+      "css": ".ds-table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin}.ds-table{width:100%;min-width:870px;table-layout:fixed;border-collapse:separate;border-spacing:0;text-align:left;font:400 13px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:var(--ink)}.ds-table th{padding:13px 12px;border-block:1px solid var(--border);background:var(--surface-soft);color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap}.ds-table td{padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface);font-variant-numeric:tabular-nums}.ds-table th:first-child,.ds-table .ds-sticky{position:sticky;left:0;z-index:1;border-right:1px solid var(--border)}.ds-table th:first-child{z-index:2;background:var(--surface-soft)}.ds-table .ds-sticky{background:var(--surface)}.ds-row-tools{display:flex;align-items:center;gap:7px;margin-top:3px}.ds-select{height:36px;min-height:36px;padding:0 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--ink);font:400 11px 'Plus Jakarta Sans',Arial,sans-serif}.ds-switch{display:flex;align-items:center;gap:5px;min-height:36px;color:var(--muted);font-size:10px}.ds-result{display:grid;grid-template-columns:minmax(0,1fr) 42px;align-items:center;gap:8px}.ds-result strong{font-size:12px;white-space:nowrap}.ds-action{width:42px;height:42px;border:0;border-radius:4px;background:transparent;color:var(--muted)}.ds-action:focus-visible{outline:2px solid var(--accent);outline-offset:2px}@media(max-width:767px){.ds-table{min-width:762px;font-size:14px}.ds-table th{padding:12px 9px}.ds-table td{padding:9px}.ds-result{grid-template-columns:minmax(0,1fr) 44px}.ds-result strong{font-size:11px}.ds-action{width:44px;height:44px}.ds-select,.ds-switch{min-height:36px;height:36px}}"
+    },
+    {
+      "name": "Optional Overhead Disclosure",
+      "kind": "custom",
+      "refersTo": "disclosure-overhead",
+      "description": "An optional overhead disclosure with a full-width mobile monthly target and a compact monthly-cost row.",
+      "html": "<details class=\"ds-overhead\"><summary><span><strong>Biaya operasional</strong><small>Opsional</small></span><span class=\"ds-overhead-value\">Rp 2.500 / cup</span><svg aria-hidden=\"true\" viewBox=\"0 0 16 16\"><path d=\"m3 6 5 5 5-5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg></summary><div class=\"ds-overhead-body\"><div class=\"ds-target\"><label>Target cup / bulan (opsional)<input value=\"600\" aria-label=\"Target cup per bulan\"></label><p>Biaya bulanan<strong>Rp 1.500.000 ÷ 600 cup</strong></p></div><div class=\"ds-cost-row\"><label>Nama biaya<input value=\"Sewa tempat\"></label><label>Nominal<input value=\"1.500.000\"></label><label>Dihitung per<button>Bulan⌄</button></label><button class=\"ds-action\" aria-label=\"Hapus biaya\">×</button></div></div></details>",
+      "css": ".ds-overhead{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--ink);font-family:'Plus Jakarta Sans',Arial,sans-serif}.ds-overhead summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:68px;padding:16px 20px;cursor:pointer}.ds-overhead summary::-webkit-details-marker{display:none}.ds-overhead summary>span:first-child{flex:1}.ds-overhead strong{display:block;font-size:16px}.ds-overhead small{display:block;margin-top:4px;color:var(--muted);font-size:12px}.ds-overhead-value{font-size:14px;font-weight:600}.ds-overhead svg{width:16px;height:16px;color:var(--muted);transition:transform 180ms var(--curve)}.ds-overhead[open] svg{transform:rotate(180deg)}.ds-overhead-body{padding:0 20px 16px;border-top:1px solid var(--border);font-size:12px}.ds-target{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);align-items:end;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}.ds-target label,.ds-cost-row label{display:grid;gap:6px;font-weight:600}.ds-target input,.ds-cost-row input,.ds-cost-row label button{min-height:34px;padding:8px 12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--ink);font:400 14px 'Plus Jakarta Sans',Arial,sans-serif}.ds-target p{display:flex;flex-direction:column;gap:5px;color:var(--muted)}.ds-target p strong{color:var(--ink);font-size:12px;font-weight:500}.ds-cost-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 120px 42px;align-items:end;gap:12px;padding:16px 0;border-bottom:1px solid var(--border)}.ds-cost-row .ds-action{margin-bottom:1px}@media(max-width:767px){.ds-overhead summary{min-height:60px;padding:14px 16px}.ds-overhead-body{padding:0 16px 14px}.ds-target{grid-template-columns:minmax(0,1fr);align-items:stretch;gap:8px;padding:12px 0}.ds-target label{gap:5px}.ds-target input{min-height:32px}.ds-target p{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}.ds-target p strong{text-align:right}.ds-cost-row{grid-template-columns:minmax(0,1fr) minmax(0,.85fr) 44px;gap:12px 10px;padding:14px 0}.ds-cost-row label:first-child{grid-column:1/3;grid-row:1}.ds-cost-row label:nth-child(2){grid-column:1;grid-row:2}.ds-cost-row label:nth-child(3){grid-column:2;grid-row:2}.ds-cost-row>.ds-action{grid-column:3;grid-row:1;justify-self:end;margin-top:22px;width:44px;height:44px}}"
+    },
+    {
+      "name": "HPP Summary Panel",
+      "kind": "card",
+      "refersTo": "card-summary",
+      "description": "A compact per-cup breakdown with HPP, selling price, and estimated profit.",
+      "html": "<section class=\"ds-summary\"><h2>Ringkasan / cup</h2><div class=\"ds-summary-body\"><dl><div><dt>Bahan baku</dt><dd>Rp 7.558</dd></div><div><dt>Kemasan</dt><dd>Rp 1.000</dd></div><div><dt>Operasional / cup</dt><dd>Rp 2.500</dd></div><div class=\"ds-total\"><dt>Total HPP</dt><dd>Rp 11.058</dd></div></dl><p class=\"ds-price-label\">Harga jual / cup</p><strong class=\"ds-price\">Rp 15.797</strong><dl class=\"ds-profit\"><div><dt>Estimasi laba</dt><dd>Rp 4.739</dd></div><div><dt>Margin aktual</dt><dd>30%</dd></div></dl></div></section>",
+      "css": ".ds-summary{min-width:0;overflow:clip;border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--ink);font-family:'Plus Jakarta Sans',Arial,sans-serif}.ds-summary h2{margin:0;padding:15px 18px 12px;border-bottom:1px solid var(--border);font-size:16px;line-height:1.4}.ds-summary-body{padding:15px 18px}.ds-summary dl{display:flex;flex-direction:column;gap:9px;margin:0;font-size:12px;line-height:1.45}.ds-summary dl div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.ds-summary dt{color:var(--muted)}.ds-summary dd{margin:0;font-weight:500;font-variant-numeric:tabular-nums;text-align:right}.ds-summary .ds-total{margin-top:1px;padding-top:12px;border-top:1px solid var(--border);font-weight:650}.ds-summary .ds-total dt{color:var(--ink)}.ds-summary .ds-total dd{font-size:17px}.ds-price-label{margin:12px 0 5px;padding-top:14px;border-top:1px solid var(--border);color:var(--accent);font-size:12px;font-weight:600}.ds-price{display:block;font-size:28px;line-height:1.2;letter-spacing:-.035em;font-variant-numeric:tabular-nums}.ds-profit{gap:8px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--border)}.ds-summary .ds-profit div{display:flex;justify-content:space-between;gap:12px}.ds-summary .ds-profit dd{color:var(--accent)}@media(max-width:1023px){.ds-summary{order:1}}@media(max-width:767px){.ds-summary{border-radius:12px}.ds-summary h2{padding:13px 14px 10px}.ds-summary-body{padding:13px 14px}.ds-summary dl{gap:8px;font-size:11px}.ds-summary .ds-total{padding-top:10px}.ds-summary .ds-total dd{font-size:16px}.ds-price-label{margin:10px 0 5px;padding-top:12px}.ds-price{font-size:25px}.ds-profit{gap:7px;margin-top:10px;padding-top:9px}}"
+    },
+    {
+      "name": "Paste Recipe Dialog",
+      "kind": "custom",
+      "refersTo": "dialog-import",
+      "description": "A paste-first import dialog with preview and explicit apply action.",
+      "html": "<section class=\"ds-dialog\" role=\"dialog\" aria-labelledby=\"ds-dialog-title\"><h2 id=\"ds-dialog-title\">Import resep</h2><p>Tempel seluruh hasil Salin resep. Data saat ini baru diganti setelah Anda memilih Gunakan resep.</p><label for=\"ds-recipe\">Tempel resep di sini</label><textarea id=\"ds-recipe\" rows=\"5\" placeholder=\"RESEP HPP-KU\"></textarea><p class=\"ds-preview\">Kopi Brown Sugar · 7 bahan aktif · 2 biaya operasional · margin 45%</p><div class=\"ds-dialog-actions\"><button class=\"ds-cancel\">Batal</button><button class=\"ds-apply\">Gunakan resep</button></div></section>",
+      "css": ".ds-dialog{width:min(620px,100%);padding:22px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--ink);font-family:'Plus Jakarta Sans',Arial,sans-serif}.ds-dialog h2{margin:0;font-size:22px;letter-spacing:-.025em}.ds-dialog p{margin:10px 0 0;color:var(--muted);font-size:13px;line-height:1.7}.ds-dialog label{display:block;margin:20px 0 8px;font-size:12px;font-weight:600}.ds-dialog textarea{width:100%;padding:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--ink);font:400 14px/1.6 'Plus Jakarta Sans',Arial,sans-serif}.ds-dialog .ds-preview{padding:12px;border-radius:8px;background:var(--surface-soft);color:var(--ink)}.ds-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}.ds-dialog-actions button{min-height:42px;padding:8px 14px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--ink);font:600 13px 'Plus Jakarta Sans',Arial,sans-serif}.ds-dialog-actions .ds-apply{border-color:var(--accent);background:var(--accent);color:#fff}.ds-dialog-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:767px){.ds-dialog{padding:22px}.ds-dialog-actions button{min-height:44px}}"
+    },
+    {
+      "name": "Quick-add Overhead Chips",
+      "kind": "custom",
+      "refersTo": "quick-add-chip",
+      "description": "Compact pill-shaped suggestions for common overhead costs, with mobile-sized touch targets.",
+      "html": "<div class=\"ds-cost-suggestions\" aria-label=\"Tambah biaya umum\"><button type=\"button\"><span aria-hidden=\"true\">+</span>Sewa tempat</button><button type=\"button\"><span aria-hidden=\"true\">+</span>Gaji karyawan</button><button type=\"button\"><span aria-hidden=\"true\">+</span>Listrik &amp; air</button></div>",
+      "css": ".ds-cost-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 4px}.ds-cost-suggestions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:7px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--ink);font:500 12px/1.3 'Plus Jakarta Sans',Arial,sans-serif}.ds-cost-suggestions button span{color:var(--accent);font-size:14px}@media(max-width:767px){.ds-cost-suggestions{margin:10px 0 2px}.ds-cost-suggestions button{min-height:44px;padding:8px 12px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Clear Counter",
+    "overview": "The Clear Counter is a calm, practical workspace for checking drink costs and a selling price without making the calculation feel like a finance dashboard. Keep the first screen compact and familiar: a small HPP-Ku wordmark, short Indonesian labels, clearly grouped inputs, and the HPP result easy to find.\\n\\nUse a clean white and blue light theme with a dark slate-blue option. Plus Jakarta Sans carries the interface; Cormorant Garamond is reserved for the HPP-Ku wordmark. Radix controls, quiet borders, and direct state messages should make each action feel familiar. The interface has no decorative imagery or oversized marketing hero. On mobile, the monthly target input uses the full row, while common overhead suggestions use compact pill chips.",
+    "keyCharacteristics": [
+      "Compact calculator interface with concise Indonesian copy.",
+      "White and cool-gray surfaces, blue actions, and a user-selectable dark theme.",
+      "Ingredients and margin editor before the HPP summary on mobile.",
+      "One ingredient per table row, with optional overhead and margin controls.",
+      "Full-width monthly target input and compact common-cost chips on narrow screens."
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Rule",
+        "body": "Use blue to mark an action, selection, link, or focus state. Keep the surrounding data surfaces neutral.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wordmark Boundary Rule",
+        "body": "Keep Cormorant Garamond on the HPP-Ku wordmark; use Plus Jakarta Sans for calculator content.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Do not add shadows to ordinary panels or controls; use surface tone and border edges to show grouping.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep field labels visible and copy plain, brief, and Indonesian.",
+      "Do use blue for primary actions, selection, links, and visible focus.",
+      "Do use 40px mobile field shells with 14px input text, while keeping action controls at least 44px tall.",
+      "Do put the editor before the summary on mobile and keep the selling price available in the bottom action bar.",
+      "Do keep table scrolling inside the ingredient table and preserve its pinned name column.",
+      "Do show explicit saving, saved, invalid, and error states.",
+      "Do keep quick-add overhead suggestions as compact chips with 44px mobile touch targets."
+    ],
+    "donts": [
+      "Don't add a large marketing hero, decorative image, or page-entry animation.",
+      "Don't bring back the cream-and-espresso screen palette; use the documented light or dark theme.",
+      "Don't move the mobile summary ahead of ingredient and overhead entry.",
+      "Don't remove labels to make the ingredient table fit; keep its internal horizontal scroll.",
+      "Don't present invalid units or zero package quantities as a valid zero HPP."
+    ]
+  }
+}

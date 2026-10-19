@@ -1,0 +1,15 @@
+{
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "plus jakarta sans",
+        "createdAt": "2026-10-19T04:19:01.505Z",
+        "reason": "User confirmed Plus Jakarta Sans remains intentional for this native-style interface"
+      }
+    ]
+  }
+}
