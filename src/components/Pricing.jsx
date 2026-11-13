@@ -1,6 +1,6 @@
-import { Callout, Slider, Switch } from "@radix-ui/themes";
-import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { Slider, Switch } from "@radix-ui/themes";
 import { Field, NumberInput } from "./Fields.jsx";
+import { decimal } from "../model.js";
 
 const presets = [
   { name: "Kompetitif", value: 25 },
@@ -8,57 +8,116 @@ const presets = [
   { name: "Premium", value: 65 },
 ];
 
-export default function Pricing({
-  pricing,
-  onChange,
-  result,
-  active,
-  onActiveChange,
-}) {
-  const change = (percent) => onChange({ ...pricing, percent });
-  const selectedPercent = Number(pricing.percent);
-  const sliderValue = Math.min(90, Math.max(0, selectedPercent || 0));
+export default function Pricing({ menu, update, result }) {
+  const active = menu.marginActive !== false;
+  const pricing = menu.pricing;
+  const cost = result.cost ?? 0;
+
+  const displayPercent =
+    pricing.customPrice && cost > 0 && result.margin !== null
+      ? Number(result.margin.toFixed(2))
+      : pricing.percent;
+
+  const selectedPercent = Number(displayPercent);
+  const sliderValue = Math.min(
+    90,
+    Math.max(0, Math.round(selectedPercent || 0))
+  );
+
+  const handlePreset = (percent) => {
+    update((draft) => ({
+      pricing: { ...draft.pricing, percent, customPrice: "" },
+    }));
+  };
+
+  const handleSlider = ([percent]) => {
+    update((draft) => ({
+      pricing: { ...draft.pricing, percent, customPrice: "" },
+    }));
+  };
+
+  const handlePercentChange = (percent) => {
+    update((draft) => ({
+      pricing: { ...draft.pricing, percent, customPrice: "" },
+    }));
+  };
+
+  const handleCustomPriceChange = (val) => {
+    if (val === "" || val === null) {
+      update((draft) => ({
+        pricing: { ...draft.pricing, customPrice: "" },
+      }));
+      return;
+    }
+    const numPrice = Number(val);
+    if (cost > 0 && numPrice > 0) {
+      const calculatedMargin = ((numPrice - cost) / numPrice) * 100;
+      const roundedPercent = Number(
+        Math.max(0, Math.min(99.99, calculatedMargin)).toFixed(2)
+      );
+      update((draft) => ({
+        pricing: {
+          ...draft.pricing,
+          customPrice: numPrice,
+          percent: roundedPercent,
+        },
+      }));
+    } else {
+      update((draft) => ({
+        pricing: {
+          ...draft.pricing,
+          customPrice: numPrice,
+        },
+      }));
+    }
+  };
 
   return (
-    <section
+    <div
       className={
-        "panel pricing-panel section-panel" + (active ? "" : " is-inactive")
+        "summary-subpanel pricing-subpanel" + (active ? "" : " is-inactive")
       }
       id="pricing"
-      aria-labelledby="pricing-title"
     >
-      <div className="panel-heading section-panel-heading">
-        <h2 id="pricing-title">Margin keuntungan</h2>
+      <div className="subpanel-header">
+        <div className="subpanel-title-group">
+          <h3 className="subpanel-title">Margin keuntungan</h3>
+          <span className="subpanel-meta">
+            {active ? `${decimal(displayPercent)}%` : "Nonaktif"}
+          </span>
+        </div>
         <label className="section-toggle">
           <Switch
             size="1"
             checked={active}
-            onCheckedChange={onActiveChange}
+            onCheckedChange={(marginActive) => update({ marginActive })}
             aria-label="Aktifkan margin keuntungan"
           />
           <span>{active ? "Aktif" : "Nonaktif"}</span>
         </label>
       </div>
 
-      <div className="panel-body pricing-body">
-        {!active && (
-          <p className="inactive-note">Harga jual mengikuti total HPP.</p>
-        )}
-        <fieldset className="section-fields pricing-fields" disabled={!active}>
+      {!active ? (
+        <p className="subpanel-inactive-note">
+          Harga jual mengikuti total HPP (margin 0%).
+        </p>
+      ) : (
+        <fieldset className="subpanel-fields pricing-fields" disabled={!active}>
           <div
             className="profit-presets"
             role="group"
             aria-label="Pilihan margin"
           >
             {presets.map((preset) => {
-              const isSelected = selectedPercent === preset.value;
+              const isSelected =
+                !pricing.customPrice && selectedPercent === preset.value;
               return (
                 <button
                   key={preset.name}
                   type="button"
                   className={"preset" + (isSelected ? " selected" : "")}
                   aria-pressed={isSelected}
-                  onClick={() => change(preset.value)}
+                  onClick={() => handlePreset(preset.value)}
                 >
                   <span>{preset.name}</span>
                   <strong>{preset.value}%</strong>
@@ -67,29 +126,49 @@ export default function Pricing({
             })}
           </div>
 
-          <div className="percentage-control">
-            <div className="slider-field">
+          <div className="slider-field">
+            <div className="slider-label-row">
               <label id="profit-slider-label">Atur margin</label>
-              <Slider
-                aria-labelledby="profit-slider-label"
-                value={[sliderValue]}
-                min={0}
-                max={90}
-                step={1}
-                onValueChange={([percent]) => change(percent)}
-              />
-              <div className="slider-scale" aria-hidden="true">
-                <span>0%</span>
-                <span>90%</span>
-              </div>
+              <span className="slider-value-badge">{sliderValue}%</span>
             </div>
+            <Slider
+              aria-labelledby="profit-slider-label"
+              value={[sliderValue]}
+              min={0}
+              max={90}
+              step={1}
+              onValueChange={handleSlider}
+            />
+            <div className="slider-scale" aria-hidden="true">
+              <span>0%</span>
+              <span>90%</span>
+            </div>
+          </div>
+
+          <div className="pricing-inputs-grid">
+            <Field label="Custom harga jual">
+              {(fieldId) => (
+                <NumberInput
+                  id={fieldId}
+                  money
+                  size="2"
+                  label="Custom harga jual"
+                  value={pricing.customPrice}
+                  onChange={handleCustomPriceChange}
+                  placeholder={
+                    result.price ? String(result.price) : "Contoh: 15.000"
+                  }
+                />
+              )}
+            </Field>
             <Field label="Nilai margin">
               {(fieldId) => (
                 <NumberInput
                   id={fieldId}
+                  size="2"
                   label="Margin keuntungan"
-                  value={pricing.percent}
-                  onChange={change}
+                  value={displayPercent}
+                  onChange={handlePercentChange}
                   max={99.99}
                   suffix="%"
                 />
@@ -97,7 +176,7 @@ export default function Pricing({
             </Field>
           </div>
         </fieldset>
-      </div>
-    </section>
+      )}
+    </div>
   );
 }

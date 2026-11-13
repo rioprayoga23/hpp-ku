@@ -1,7 +1,12 @@
-import { IconButton } from '@radix-ui/themes';
+import { IconButton } from "@radix-ui/themes";
 
 /** Shared, labeled icon-only action used by repeatable rows. */
-export default function IconAction({ label, className = '', children, ...props }) {
+export default function IconAction({
+  label,
+  className = "",
+  children,
+  ...props
+}) {
   return (
     <IconButton
       {...props}

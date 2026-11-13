@@ -20,13 +20,13 @@ export const rupiah = (value) =>
       }).format(value);
 export const decimal = (value) =>
   new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(
-    value || 0,
+    value || 0
   );
 export const integer = (value) =>
   value === ""
     ? ""
     : new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(
-        value,
+        value
       );
 const valid = (value, min = 0, max = Number.MAX_SAFE_INTEGER) =>
   value !== "" &&
@@ -72,7 +72,7 @@ export function freshMenu(example = false) {
     overheads: [],
     overheadsActive: true,
     target: "",
-    pricing: { percent: 45 },
+    pricing: { percent: 45, customPrice: "" },
     marginActive: true,
     updatedAt: null,
   };
@@ -129,7 +129,15 @@ export function normalizeMenu(raw) {
     })),
     target: raw.target ?? "",
     overheadsActive: raw.overheadsActive !== false,
-    pricing: { percent: marginPercent },
+    pricing: {
+      percent: marginPercent,
+      customPrice:
+        priorPricing.customPrice !== undefined &&
+        priorPricing.customPrice !== "" &&
+        valid(priorPricing.customPrice, 1)
+          ? Number(priorPricing.customPrice)
+          : "",
+    },
     marginActive: raw.marginActive !== false,
     updatedAt: raw.updatedAt ?? null,
   };
@@ -177,7 +185,7 @@ export function calculate(menu) {
     if (!valid(o.amount)) {
       if (overheadsActive)
         overheadWarnings.push(
-          `${o.name || `Biaya ${i + 1}`}: nominal diabaikan karena belum valid.`,
+          `${o.name || `Biaya ${i + 1}`}: nominal diabaikan karena belum valid.`
         );
     } else if (o.period === "month") monthly += Number(o.amount);
     else perPortion += Number(o.amount);
@@ -185,30 +193,29 @@ export function calculate(menu) {
   const targetValid = valid(menu.target, Number.MIN_VALUE);
   if (overheadsActive && monthly > 0 && !targetValid)
     overheadWarnings.push(
-      "Isi target cup per bulan untuk memasukkan biaya bulanan ke HPP.",
+      "Isi target cup per bulan untuk memasukkan biaya bulanan ke HPP."
     );
   const monthlyAllocated =
     monthly > 0 && targetValid ? monthly / Number(menu.target) : 0;
   const overhead = overheadsActive ? perPortion + monthlyAllocated : 0;
   const marginActive = menu.marginActive !== false;
-  const { percent } = menu.pricing;
+  const { percent, customPrice } = menu.pricing || {};
+  const hasCustomPrice = marginActive && valid(customPrice, 1);
   if (!activeCount) errors.push("Tambahkan setidaknya satu komponen aktif.");
   const cost = ingredients + packaging + overhead;
   if (!Number.isFinite(cost) || cost > Number.MAX_SAFE_INTEGER)
     errors.push("Total biaya terlalu besar untuk dihitung.");
-  if (marginActive && !valid(percent, 0, 99.99))
+  if (marginActive && !hasCustomPrice && !valid(percent, 0, 99.99))
     errors.push("Margin harus antara 0 dan kurang dari 100%.");
   if (cost <= 0)
     errors.push(
-      "Tambahkan biaya aktif agar HPP dan harga jual dapat dihitung.",
+      "Tambahkan biaya aktif agar HPP dan harga jual dapat dihitung."
     );
   let price = null,
     profit = null,
     margin = null;
   const ingredientErrors = errors.some((error) =>
-    /Samakan jenis satuan|Isi kemasan|Isi harga|Angka terlalu besar/.test(
-      error,
-    ),
+    /Samakan jenis satuan|Isi kemasan|Isi harga|Angka terlalu besar/.test(error)
   );
   const costValid =
     activeCount > 0 &&
@@ -218,12 +225,20 @@ export function calculate(menu) {
     cost > 0;
   if (
     costValid &&
-    (!marginActive || !errors.some((error) => error.includes("Margin harus")))
+    (!marginActive ||
+      hasCustomPrice ||
+      !errors.some((error) => error.includes("Margin harus")))
   ) {
-    const effectivePercent = marginActive ? Number(percent) : 0;
-    price = Math.ceil(cost / (1 - effectivePercent / 100));
-    profit = price - cost;
-    margin = (profit / price) * 100;
+    if (hasCustomPrice) {
+      price = Math.round(Number(customPrice));
+      profit = price - cost;
+      margin = price > 0 ? (profit / price) * 100 : 0;
+    } else {
+      const effectivePercent = marginActive ? Number(percent) : 0;
+      price = Math.ceil(cost / (1 - effectivePercent / 100));
+      profit = price - cost;
+      margin = price > 0 ? (profit / price) * 100 : 0;
+    }
     if (
       ![price, profit, margin].every(Number.isFinite) ||
       price > Number.MAX_SAFE_INTEGER
@@ -247,6 +262,7 @@ export function calculate(menu) {
     errors,
     overheadWarnings,
     lowMargin: marginActive && margin !== null && margin < 30,
+    lossWarning: marginActive && price !== null && costValid && profit < 0,
   };
 }
 export function loadWorkspace(storage = localStorage) {

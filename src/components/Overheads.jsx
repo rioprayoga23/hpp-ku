@@ -25,7 +25,9 @@ export default function Overheads({ menu, update, result, notify }) {
     }));
 
   const change = (index, patch) =>
-    setRows(menu.overheads.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    setRows(
+      menu.overheads.map((row, i) => (i === index ? { ...row, ...patch } : row))
+    );
 
   const add = (name = "") =>
     setRows([
@@ -41,25 +43,38 @@ export default function Overheads({ menu, update, result, notify }) {
         const next = [...current];
         next.splice(Math.min(index, next.length), 0, removed);
         return next;
-      }),
+      })
     );
   };
 
   const monthlyDescription =
     result.monthly > 0 && Number(menu.target) > 0
-      ? rupiah(result.monthly) + " ÷ " + Number(menu.target).toLocaleString("id-ID") + " cup"
+      ? rupiah(result.monthly) +
+        " ÷ " +
+        Number(menu.target).toLocaleString("id-ID") +
+        " cup"
       : result.monthly > 0
         ? "Belum dialokasikan"
         : rupiah(0);
 
   return (
-    <section
-      className={"panel section-panel overhead-panel" + (active ? "" : " is-inactive")}
+    <div
+      className={
+        "summary-subpanel overhead-subpanel" + (active ? "" : " is-inactive")
+      }
       id="overheads"
-      aria-labelledby="overheads-title"
     >
-      <div className="panel-heading section-panel-heading">
-        <h2 id="overheads-title">Biaya operasional</h2>
+      <div className="subpanel-header">
+        <div className="subpanel-title-group">
+          <h3 className="subpanel-title">Biaya operasional</h3>
+          <span className="subpanel-meta">
+            {active
+              ? result.overhead > 0
+                ? `${rupiah(result.overhead)} / cup`
+                : "Opsional (Rp 0)"
+              : "Tidak dihitung"}
+          </span>
+        </div>
         <label className="section-toggle">
           <Switch
             size="1"
@@ -71,24 +86,20 @@ export default function Overheads({ menu, update, result, notify }) {
         </label>
       </div>
 
-      <div className="section-panel-meta">
-        <span>Opsional</span>
-        <strong>{active ? rupiah(result.overhead) + " / cup" : "Tidak dihitung"}</strong>
-      </div>
-
-      <details className="section-details">
-        <summary>
-          <span>Atur biaya</span>
+      <details className="subpanel-details">
+        <summary className="subpanel-summary">
+          <span>Atur rincian biaya</span>
           <ChevronDownIcon aria-hidden="true" />
         </summary>
-        <fieldset className="section-fields overhead-fields" disabled={!active}>
-          <div className="disclosure-body">
-            <div className="target-block">
+        <fieldset className="subpanel-fields" disabled={!active}>
+          <div className="subpanel-body">
+            <div className="target-block-compact">
               <Field label="Target cup / bulan">
                 {(fieldId) => (
                   <NumberInput
                     id={fieldId}
-                    label="Target cup per bulan, opsional"
+                    size="2"
+                    label="Target cup per bulan"
                     value={menu.target}
                     min={1}
                     onChange={(target) => update({ target })}
@@ -97,20 +108,25 @@ export default function Overheads({ menu, update, result, notify }) {
                   />
                 )}
               </Field>
-              <div className="monthly-cost" aria-live="polite">
+              <div className="monthly-cost-compact" aria-live="polite">
                 <span>Biaya bulanan</span>
                 <strong>{monthlyDescription}</strong>
               </div>
             </div>
 
             {!menu.overheads.length && (
-              <div className="empty-overhead">
-                <div className="quick-add" role="group" aria-label="Tambah biaya umum">
+              <div className="empty-overhead-compact">
+                <span className="quick-add-title">Tambah biaya umum:</span>
+                <div
+                  className="quick-add"
+                  role="group"
+                  aria-label="Tambah biaya umum"
+                >
                   {commonCosts.map((name) => (
                     <Button
                       key={name}
                       className="quick-add-chip"
-                      size="2"
+                      size="1"
                       variant="outline"
                       color="gray"
                       onClick={() => add(name)}
@@ -123,57 +139,63 @@ export default function Overheads({ menu, update, result, notify }) {
               </div>
             )}
 
-            <div className="overhead-list">
+            <div className="overhead-list-compact">
               {menu.overheads.map((row, index) => (
-                <div className="overhead-row" key={row.id}>
-                  <Field label="Nama biaya">
-                    {(fieldId) => (
-                      <TextField.Root
-                        size="3"
-                        id={fieldId}
-                        value={row.name}
-                        onChange={(event) =>
-                          change(index, { name: event.target.value })
-                        }
-                        placeholder="Contoh: Sewa tempat"
-                      />
-                    )}
-                  </Field>
-                  <Field label="Nominal">
-                    {(fieldId) => (
-                      <NumberInput
-                        id={fieldId}
-                        money
-                        label={"Nominal " + (row.name || "biaya")}
-                        value={row.amount}
-                        onChange={(amount) => change(index, { amount })}
-                      />
-                    )}
-                  </Field>
-                  <Field label="Dihitung per">
-                    {(fieldId) => (
-                      <Choice
-                        id={fieldId}
-                        value={row.period}
-                        onChange={(period) => change(index, { period })}
-                        options={periods}
-                        label={"Periode " + (row.name || "biaya")}
-                      />
-                    )}
-                  </Field>
-                  <IconAction
-                    className="overhead-delete"
-                    label={"Hapus biaya " + (row.name || index + 1)}
-                    onClick={() => remove(index)}
-                  >
-                    <TrashIcon aria-hidden="true" />
-                  </IconAction>
+                <div className="overhead-item-card" key={row.id}>
+                  <div className="overhead-item-header">
+                    <Field label="Nama biaya">
+                      {(fieldId) => (
+                        <TextField.Root
+                          size="2"
+                          id={fieldId}
+                          value={row.name}
+                          onChange={(event) =>
+                            change(index, { name: event.target.value })
+                          }
+                          placeholder="Contoh: Sewa tempat"
+                        />
+                      )}
+                    </Field>
+                    <IconAction
+                      className="overhead-delete"
+                      label={"Hapus biaya " + (row.name || index + 1)}
+                      onClick={() => remove(index)}
+                    >
+                      <TrashIcon aria-hidden="true" />
+                    </IconAction>
+                  </div>
+                  <div className="overhead-item-inputs">
+                    <Field label="Nominal">
+                      {(fieldId) => (
+                        <NumberInput
+                          id={fieldId}
+                          money
+                          size="2"
+                          label={"Nominal " + (row.name || "biaya")}
+                          value={row.amount}
+                          onChange={(amount) => change(index, { amount })}
+                        />
+                      )}
+                    </Field>
+                    <Field label="Dihitung per">
+                      {(fieldId) => (
+                        <Choice
+                          id={fieldId}
+                          size="2"
+                          value={row.period}
+                          onChange={(period) => change(index, { period })}
+                          options={periods}
+                          label={"Periode " + (row.name || "biaya")}
+                        />
+                      )}
+                    </Field>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="panel-footer inline-footer">
-              <Button size="2" variant="soft" onClick={() => add()}>
+            <div className="subpanel-footer">
+              <Button size="1" variant="soft" onClick={() => add()}>
                 <PlusIcon aria-hidden="true" />
                 Tambah biaya
               </Button>
@@ -181,6 +203,6 @@ export default function Overheads({ menu, update, result, notify }) {
           </div>
         </fieldset>
       </details>
-    </section>
+    </div>
   );
 }

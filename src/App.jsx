@@ -20,8 +20,6 @@ import {
   DownloadIcon,
 } from "@radix-ui/react-icons";
 import Ingredients from "./components/Ingredients.jsx";
-import Overheads from "./components/Overheads.jsx";
-import Pricing from "./components/Pricing.jsx";
 import Summary from "./components/Summary.jsx";
 import TransferDialog from "./components/TransferDialog.jsx";
 import { Field } from "./components/Fields.jsx";
@@ -32,7 +30,11 @@ import {
   persistWorkspace,
   rupiah,
 } from "./model.js";
-import { copiedHppTotal, exportRecipe, exportRecipeHtml } from "./recipeTransfer.js";
+import {
+  copiedHppTotal,
+  exportRecipe,
+  exportRecipeHtml,
+} from "./recipeTransfer.js";
 import { Toaster, toast } from "sonner";
 import "sonner/dist/styles.css";
 export default function App() {
@@ -44,7 +46,7 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false),
     [copyFallback, setCopyFallback] = useState("");
   const [systemDark, setSystemDark] = useState(
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches
   );
   const [theme, setTheme] = useState(() => {
     try {
@@ -58,7 +60,7 @@ export default function App() {
   const appearance =
     theme === "system" ? (systemDark ? "dark" : "light") : theme;
   const result = useMemo(() => calculate(draft), [draft]);
-  const showSellingPrice = result.marginActive && result.overheadsActive && result.price !== null;
+  const showSellingPrice = result.marginActive && result.price !== null;
   const activeCount = draft.items.filter((i) => i.active).length;
   const canCopy = activeCount > 0 && result.errors.length === 0;
   const update = (patch) =>
@@ -100,7 +102,7 @@ export default function App() {
         setSaveState("saved");
       } catch {
         setStorageIssue(
-          "Penyimpanan browser penuh atau tidak tersedia. Salin resep sebelum menutup halaman agar data tidak hilang.",
+          "Penyimpanan browser penuh atau tidak tersedia. Salin resep sebelum menutup halaman agar data tidak hilang."
         );
         setSaveState("error");
       }
@@ -138,7 +140,12 @@ export default function App() {
       } else {
         await navigator.clipboard.writeText(text);
       }
-      toast.success("Tabel HPP disalin.", { duration: 3500, description: "Tempel mulai dari kolom No. Total HPP bahan dan kemasan / cup: " + rupiah(copiedHppTotal(draft)) });
+      toast.success("Tabel HPP disalin.", {
+        duration: 3500,
+        description:
+          "Tempel mulai dari kolom No. Total HPP bahan dan kemasan / cup: " +
+          rupiah(copiedHppTotal(draft)),
+      });
     } catch {
       setCopyFallback(text);
       setImportOpen(true);
@@ -200,7 +207,7 @@ export default function App() {
                     ? "light"
                     : theme === "light"
                       ? "dark"
-                      : "system",
+                      : "system"
                 )
               }
             >
@@ -267,27 +274,29 @@ export default function App() {
               }
               notify={notify}
             />
-            <Overheads
-              menu={draft}
-              update={update}
-              result={result}
-              notify={notify}
-            />
-            <Pricing
-              pricing={draft.pricing}
-              active={draft.marginActive !== false}
-              onActiveChange={(marginActive) => update({ marginActive })}
-              onChange={(pricing) => update({ pricing })}
-              result={result}
-            />
           </div>
-          <Summary result={result} canCopy={canCopy} onCopy={copyRecipe} />
+          <Summary
+            menu={draft}
+            update={update}
+            result={result}
+            canCopy={canCopy}
+            onCopy={copyRecipe}
+            notify={notify}
+          />
         </div>
       </main>
       <div className="mobile-action-bar">
         <a href="#summary">
-          <span>{showSellingPrice ? "Harga jual / cup" : "Total HPP / cup"}</span>
-          <strong>{showSellingPrice ? rupiah(result.price) : result.cost === null ? "Periksa bahan" : rupiah(result.cost)}</strong>
+          <span>
+            {showSellingPrice ? "Harga jual / cup" : "Total HPP / cup"}
+          </span>
+          <strong>
+            {showSellingPrice
+              ? rupiah(result.price)
+              : result.cost === null
+                ? "Periksa bahan"
+                : rupiah(result.cost)}
+          </strong>
           <ArrowDownIcon />
         </a>
         <div>
@@ -295,7 +304,12 @@ export default function App() {
             <DownloadIcon />
             Import resep
           </Button>
-          <Button highContrast onClick={copyRecipe} disabled={!canCopy} aria-label="Salin tabel HPP">
+          <Button
+            highContrast
+            onClick={copyRecipe}
+            disabled={!canCopy}
+            aria-label="Salin tabel HPP"
+          >
             <CopyIcon />
             Salin
           </Button>
@@ -311,8 +325,8 @@ export default function App() {
         <AlertDialog.Content maxWidth="450px">
           <AlertDialog.Title>Mulai resep baru?</AlertDialog.Title>
           <AlertDialog.Description>
-            Resep saat ini akan diganti. Salin tabel HPP terlebih dahulu jika ingin
-            menggunakannya lagi.
+            Resep saat ini akan diganti. Salin tabel HPP terlebih dahulu jika
+            ingin menggunakannya lagi.
           </AlertDialog.Description>
           <div className="dialog-actions">
             <AlertDialog.Cancel>
