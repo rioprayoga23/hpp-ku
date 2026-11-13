@@ -134,10 +134,10 @@ export function exportRecipe(menu) {
       .map((value, index) => {
         if (value === "") return value;
         if (row.isItem && (index === 3 || index === 6)) {
-          return groupedNumber(value);
+          return rawNumber(value);
         }
         if (row.isSummary && index === 6 && !row.isMargin) {
-          return groupedNumber(value);
+          return rawNumber(value);
         }
         return value;
       })
@@ -215,7 +215,7 @@ export function exportRecipeHtml(menu) {
                   ? ' x:num="' + rawNumber(value) + '"'
                   : "";
               const displayValue =
-                numeric && value !== "" ? groupedNumber(value) : value;
+                numeric && value !== "" ? rawNumber(value) : value;
               return (
                 "<td" +
                 numericValue +
@@ -279,7 +279,7 @@ export function exportRecipeHtml(menu) {
             const xNum =
               !isMargin && numVal !== "" ? ' x:num="' + numVal + '"' : "";
             const displayVal =
-              !isMargin && numVal !== "" ? groupedNumber(value) : value;
+              !isMargin && numVal !== "" ? rawNumber(value) : value;
             return (
               "<td" +
               xNum +
@@ -425,7 +425,11 @@ function importTable(text) {
           );
         })
       ) {
-        if (cells[5] && cells[5].toLowerCase().includes("harga jual") && cells[6]) {
+        if (
+          cells[5] &&
+          cells[5].toLowerCase().includes("harga jual") &&
+          cells[6]
+        ) {
           try {
             const parsedPrice = parseNumber(cells[6], "Harga Jual");
             if (parsedPrice > 0) menu.pricing.customPrice = parsedPrice;

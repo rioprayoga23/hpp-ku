@@ -1,9 +1,5 @@
 import { Button, Switch, TextField } from "@radix-ui/themes";
-import {
-  ChevronDownIcon,
-  PlusIcon,
-  TrashIcon,
-} from "@radix-ui/react-icons";
+import { ChevronDownIcon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
 import { Field, Choice, NumberInput } from "./Fields.jsx";
 import IconAction from "./IconAction.jsx";
 import { id, rupiah } from "../model.js";

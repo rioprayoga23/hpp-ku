@@ -53,9 +53,7 @@ export default function Summary({
               </div>
               <div>
                 <dt>Operasional / cup</dt>
-                <dd>
-                  {overheadActive ? rupiah(result.overhead) : "Rp 0"}
-                </dd>
+                <dd>{overheadActive ? rupiah(result.overhead) : "Rp 0"}</dd>
               </div>
               <div className="total-cost">
                 <dt>Total HPP</dt>
