@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDown,
   Check,
   CheckCheck,
   ChevronRight,
+  CupSoda,
   Download,
   LoaderCircle,
   Minus,
@@ -73,7 +73,6 @@ export default function App() {
     !Number.isInteger(Number(draft.cups)) ||
     Number(draft.cups) < 1 ||
     Number(draft.cups) > 100000;
-  const displayPrice = result.marginActive ? result.price : result.cost;
 
   function update(patch) {
     touched.current = true;
@@ -494,10 +493,14 @@ export default function App() {
               </div>
             )}
           </Field>
-          <p className="batch-help">
-            Resep disusun untuk <strong>1 cup</strong>.<br />
-            Kebutuhan produksi dihitung otomatis.
-          </p>
+          <div className="batch-help">
+            <div className="batch-help-copy">
+              <p>
+                Resep disusun untuk <strong>1 cup</strong>.
+              </p>
+              <p>Kebutuhan produksi dihitung otomatis.</p>
+            </div>
+          </div>
         </section>
         <div className="calculator-layout">
           <div className="editor-column">
@@ -529,13 +532,6 @@ export default function App() {
         </div>
       </main>
       <div className="mobile-action-bar">
-        <a href="#summary" aria-label="Lihat ringkasan biaya">
-          <span>{result.marginActive ? 'Harga jual / cup' : 'HPP / cup'}</span>
-          <strong>
-            {displayPrice === null ? '—' : rupiah(displayPrice)}
-            <ArrowDown aria-hidden="true" />
-          </strong>
-        </a>
         <Button
           onClick={saveCurrentRecipe}
           disabled={saving || loading || (!dirty && !connectionIssue)}
