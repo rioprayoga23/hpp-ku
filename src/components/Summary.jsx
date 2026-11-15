@@ -105,10 +105,6 @@ export default function Summary({ result, canCopy, onCopy }) {
           </button>
         </div>
       </section>
-      <p className="summary-note">
-        Estimasi berdasarkan biaya yang kamu masukkan. Pajak dan diskon belum
-        termasuk.
-      </p>
     </aside>
   );
 }
