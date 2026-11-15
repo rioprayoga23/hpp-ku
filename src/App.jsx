@@ -1,173 +1,300 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Theme,
-  Button,
-  IconButton,
-  TextField,
-  Callout,
+  ArrowDown,
+  Check,
+  CheckCheck,
+  ChevronRight,
+  Download,
+  LoaderCircle,
+  Minus,
+  Moon,
+  Plus,
+  Save,
+  Sun,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
+import { Button } from './components/DaisyPrimitives.jsx';
+import { Input } from './components/DaisyPrimitives.jsx';
+import {
   AlertDialog,
-} from "@radix-ui/themes";
-import {
-  PlusIcon,
-  SunIcon,
-  MoonIcon,
-  DesktopIcon,
-  CheckCircledIcon,
-  ExclamationTriangleIcon,
-  ReloadIcon,
-  ArrowDownIcon,
-  CopyIcon,
-  DownloadIcon,
-} from "@radix-ui/react-icons";
-import Ingredients from "./components/Ingredients.jsx";
-import Summary from "./components/Summary.jsx";
-import TransferDialog from "./components/TransferDialog.jsx";
-import { Field } from "./components/Fields.jsx";
-import {
-  calculate,
-  freshMenu,
-  loadWorkspace,
-  persistWorkspace,
-  rupiah,
-} from "./model.js";
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './components/DaisyPrimitives.jsx';
+import { Field } from './components/Fields.jsx';
+import Ingredients from './components/Ingredients.jsx';
+import Summary from './components/Summary.jsx';
+import Pricing from './components/Pricing.jsx';
+import Overheads from './components/Overheads.jsx';
+import TransferDialog from './components/TransferDialog.jsx';
+import { calculate, freshMenu, normalizeMenu, rupiah } from './model.js';
 import {
   copiedHppTotal,
   exportRecipe,
   exportRecipeHtml,
-} from "./recipeTransfer.js";
-import { Toaster, toast } from "sonner";
-import "sonner/dist/styles.css";
+  exportRecipesExcel,
+} from './recipeTransfer.js';
+import { deleteRecipe, listRecipes, saveRecipe } from './recipesApi.js';
+import { initialRecipes } from './initialRecipes.js';
+import { Toaster, toast } from 'sonner';
+
+const signature = ({ updatedAt, ...menu }) => {
+  void updatedAt;
+  return JSON.stringify(menu);
+};
+
 export default function App() {
-  const [initial] = useState(loadWorkspace);
-  const [draft, setDraft] = useState(initial.draft);
-  const [storageIssue, setStorageIssue] = useState(initial.issue),
-    [saveState, setSaveState] = useState("saved");
-  const [resetOpen, setResetOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false),
-    [copyFallback, setCopyFallback] = useState("");
-  const [systemDark, setSystemDark] = useState(
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches
+  const [draft, setDraft] = useState(() =>
+    structuredClone(initialRecipes[0].data)
   );
-  const [theme, setTheme] = useState(() => {
-    try {
-      const saved = localStorage.getItem("kopti-theme");
-      return ["light", "dark", "system"].includes(saved) ? saved : "light";
-    } catch {
-      return "light";
-    }
-  });
-  const current = useRef(draft);
-  const appearance =
-    theme === "system" ? (systemDark ? "dark" : "light") : theme;
+  const [recipes, setRecipes] = useState(initialRecipes);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [connectionIssue, setConnectionIssue] = useState('');
+  const [savedSignature, setSavedSignature] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [copyFallback, setCopyFallback] = useState('');
+  const [pendingAction, setPendingAction] = useState(null);
+  const [dark, setDark] = useState(false);
+  const touched = useRef(false);
   const result = useMemo(() => calculate(draft), [draft]);
-  const showSellingPrice = result.marginActive && result.price !== null;
-  const activeCount = draft.items.filter((i) => i.active).length;
-  const canCopy = activeCount > 0 && result.errors.length === 0;
-  const update = (patch) =>
-    setDraft((value) => ({
-      ...value,
-      ...(typeof patch === "function" ? patch(value) : patch),
+  const dirty = signature(draft) !== savedSignature;
+  const canCopy =
+    draft.items.some((item) => item.active) && result.errors.length === 0;
+  const cupInvalid =
+    draft.cups === '' ||
+    !Number.isInteger(Number(draft.cups)) ||
+    Number(draft.cups) < 1 ||
+    Number(draft.cups) > 100000;
+  const displayPrice = result.marginActive ? result.price : result.cost;
+
+  function update(patch) {
+    touched.current = true;
+    setDraft((menu) => ({
+      ...menu,
+      ...(typeof patch === 'function' ? patch(menu) : patch),
     }));
-  const notify = (message, undo) => {
-    if (undo) {
-      toast.success(message, {
-        duration: 6000,
-        action: { label: "Urungkan", onClick: undo },
-      });
-      return;
+  }
+  function notify(message, undo) {
+    toast.success(
+      message,
+      undo
+        ? { action: { label: 'Urungkan', onClick: undo }, duration: 6000 }
+        : {}
+    );
+  }
+  async function refreshRecipes() {
+    setLoading(true);
+    try {
+      const items = await listRecipes();
+      setRecipes(items);
+      setConnectionIssue('');
+      if (!touched.current && items.length) {
+        const menu = normalizeMenu({
+          ...items[0].data,
+          id: items[0].id,
+          updatedAt: items[0].updated_at,
+        });
+        setDraft(menu);
+        setSavedSignature(signature(menu));
+      }
+    } catch (error) {
+      setConnectionIssue(error.message);
+    } finally {
+      setLoading(false);
     }
-    toast.success(message, { duration: 3500 });
-  };
+  }
   useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const change = (e) => setSystemDark(e.matches);
-    media.addEventListener("change", change);
-    return () => media.removeEventListener("change", change);
+    let active = true;
+    listRecipes()
+      .then((items) => {
+        if (!active) return;
+        setRecipes(items);
+        if (!touched.current && items.length) {
+          const menu = normalizeMenu({
+            ...items[0].data,
+            id: items[0].id,
+            updatedAt: items[0].updated_at,
+          });
+          setDraft(menu);
+          setSavedSignature(signature(menu));
+        }
+      })
+      .catch((error) => {
+        if (active) setConnectionIssue(error.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
   useEffect(() => {
-    document.documentElement.dataset.theme = appearance;
-    document.documentElement.style.colorScheme = appearance;
+    const root = document.documentElement;
+    root.classList.toggle('dark', dark);
+    root.dataset.theme = dark ? 'dark' : 'light';
+    root.style.colorScheme = dark ? 'dark' : 'light';
+  }, [dark]);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  async function saveCurrentRecipe() {
+    if (saving) return;
+    if (!draft.name.trim())
+      return toast.error('Isi nama minuman sebelum menyimpan.');
+    if (cupInvalid)
+      return toast.error(
+        'Jumlah cup harus bilangan bulat antara 1 dan 100.000.'
+      );
+    const snapshot = structuredClone(draft);
+    setSaving(true);
     try {
-      localStorage.setItem("kopti-theme", theme);
-    } catch {}
-  }, [theme, appearance]);
-  useEffect(() => {
-    current.current = draft;
-    if (initial.blocked) return;
-    setSaveState("saving");
-    const t = setTimeout(() => {
-      try {
-        persistWorkspace(draft, initial.menus);
-        setStorageIssue("");
-        setSaveState("saved");
-      } catch {
-        setStorageIssue(
-          "Penyimpanan browser penuh atau tidak tersedia. Salin resep sebelum menutup halaman agar data tidak hilang."
-        );
-        setSaveState("error");
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [draft, initial]);
-  useEffect(() => {
-    if (initial.blocked) return;
-    const flush = () => {
-      try {
-        persistWorkspace(current.current, initial.menus);
-      } catch {}
+      const saved = await saveRecipe(snapshot);
+      const menu = normalizeMenu({
+        ...saved.data,
+        id: saved.id,
+        updatedAt: saved.updated_at,
+      });
+      setRecipes((items) => [
+        saved,
+        ...items.filter((item) => item.id !== saved.id),
+      ]);
+      setDraft((current) =>
+        current.id === snapshot.id
+          ? { ...current, id: saved.id, updatedAt: saved.updated_at }
+          : current
+      );
+      setSavedSignature(signature(menu));
+      setConnectionIssue('');
+      notify(`“${saved.name}” berhasil disimpan.`);
+    } catch (error) {
+      setConnectionIssue(error.message);
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  function openRecipe(recipe) {
+    const open = () => {
+      const menu = normalizeMenu({
+        ...recipe.data,
+        id: recipe.id,
+        updatedAt: recipe.updated_at,
+      });
+      touched.current = true;
+      setDraft(menu);
+      setSavedSignature(connectionIssue ? '' : signature(menu));
     };
-    window.addEventListener("pagehide", flush);
-    return () => {
-      window.removeEventListener("pagehide", flush);
-      flush();
+    if (dirty && touched.current)
+      setPendingAction({
+        title: 'Buka resep lain?',
+        description:
+          'Perubahan resep ini belum disimpan. Simpan dulu jika ingin menggunakannya lagi.',
+        label: 'Buka resep',
+        action: open,
+      });
+    else open();
+  }
+  function newRecipe() {
+    const create = () => {
+      touched.current = true;
+      setDraft(freshMenu());
+      setSavedSignature('');
     };
-  }, [initial]);
+    if (dirty && touched.current)
+      setPendingAction({
+        title: 'Mulai resep baru?',
+        description:
+          'Perubahan resep ini belum disimpan. Simpan dulu jika ingin menggunakannya lagi.',
+        label: 'Mulai baru',
+        action: create,
+      });
+    else create();
+  }
+  function confirmDelete(recipe) {
+    setPendingAction({
+      title: `Hapus “${recipe.name}”?`,
+      description:
+        'Resep akan dihapus dari daftar tersimpan. Tindakan ini tidak bisa diurungkan.',
+      label: 'Hapus resep',
+      destructive: true,
+      action: async () => {
+        try {
+          await deleteRecipe(recipe.id);
+          setRecipes((items) => items.filter((item) => item.id !== recipe.id));
+          if (draft.id === recipe.id) {
+            setDraft(freshMenu());
+            setSavedSignature('');
+          }
+          notify('Resep dihapus.');
+        } catch (error) {
+          toast.error(error.message);
+        }
+      },
+    });
+  }
+  function downloadAllRecipes() {
+    if (!recipes.length) return toast.error('Belum ada resep untuk diekspor.');
+    const blob = new Blob([exportRecipesExcel(recipes)], {
+      type: 'application/vnd.ms-excel;charset=utf-8',
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `hpp-ku-${new Date().toISOString().slice(0, 10)}.xls`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success(`${recipes.length} resep diekspor ke Excel.`);
+  }
   async function copyRecipe() {
     if (!canCopy) return;
     const text = exportRecipe(draft);
-    const html = exportRecipeHtml(draft);
     try {
       if (navigator.clipboard?.write && window.ClipboardItem) {
         try {
-          const item = new window.ClipboardItem({
-            "text/plain": new Blob([text], { type: "text/plain" }),
-            "text/html": new Blob([html], { type: "text/html" }),
-          });
-          await navigator.clipboard.write([item]);
+          await navigator.clipboard.write([
+            new window.ClipboardItem({
+              'text/plain': new Blob([text], { type: 'text/plain' }),
+              'text/html': new Blob([exportRecipeHtml(draft)], {
+                type: 'text/html',
+              }),
+            }),
+          ]);
         } catch {
           await navigator.clipboard.writeText(text);
         }
-      } else {
-        await navigator.clipboard.writeText(text);
-      }
-      toast.success("Tabel HPP disalin.", {
-        duration: 3500,
-        description:
-          "Tempel mulai dari kolom No. Total HPP bahan dan kemasan / cup: " +
-          rupiah(copiedHppTotal(draft)),
+      } else await navigator.clipboard.writeText(text);
+      toast.success('Tabel HPP disalin.', {
+        description: `HPP per cup: ${rupiah(copiedHppTotal(draft))}`,
       });
     } catch {
       setCopyFallback(text);
       setImportOpen(true);
     }
   }
-  function openImport() {
-    setCopyFallback("");
-    setImportOpen(true);
-  }
-  function importMenu(menu) {
-    const previous = structuredClone(draft);
-    setDraft(menu);
-    notify(`“${menu.name}” berhasil diimport.`, () => setDraft(previous));
-  }
+  const saveLabel = saving
+    ? 'Menyimpan...'
+    : !dirty
+      ? 'Tersimpan'
+      : 'Simpan resep';
+  const SaveIcon = saving ? LoaderCircle : !dirty ? CheckCheck : Save;
+
   return (
-    <Theme
-      appearance={appearance}
-      accentColor="blue"
-      grayColor="slate"
-      radius="medium"
-      scaling="100%"
-    >
+    <div className="app-shell">
       <a className="skip-link" href="#calculator">
         Lewati ke kalkulator
       </a>
@@ -176,209 +303,300 @@ export default function App() {
           <a
             href="#calculator"
             className="brand"
-            aria-label="HPP-Ku, ke kalkulator"
+            aria-label="HPP-Ku, kalkulator HPP"
           >
-            <span className="brand-name">HPP-Ku</span>
-            <span className="brand-product">HPP & harga jual</span>
+            <span className="brand-name">
+              HPP-Ku<span>.</span>
+            </span>
           </a>
           <div className="header-actions">
-            <span className="header-autosave">
-              {initial.blocked || saveState === "error" ? (
-                <ExclamationTriangleIcon />
-              ) : saveState === "saving" ? (
-                <ReloadIcon />
-              ) : (
-                <CheckCircledIcon />
-              )}
-              {initial.blocked || saveState === "error"
-                ? "Belum tersimpan"
-                : saveState === "saving"
-                  ? "Menyimpan..."
-                  : "Tersimpan di perangkat"}
-            </span>
-            <IconButton
-              variant="soft"
-              color="gray"
-              aria-label={`Tema ${theme}. Ganti tema`}
-              title={`Tema: ${theme}`}
-              onClick={() =>
-                setTheme(
-                  theme === "system"
-                    ? "light"
-                    : theme === "light"
-                      ? "dark"
-                      : "system"
-                )
-              }
+            <span
+              className={`save-status ${connectionIssue ? 'has-error' : ''}`}
+              role="status"
             >
-              {theme === "system" ? (
-                <DesktopIcon />
-              ) : theme === "light" ? (
-                <SunIcon />
-              ) : (
-                <MoonIcon />
-              )}
-            </IconButton>
+              {connectionIssue ? (
+                <TriangleAlert aria-hidden="true" />
+              ) : !dirty ? (
+                <Check aria-hidden="true" />
+              ) : null}
+              {loading
+                ? 'Memuat resep...'
+                : connectionIssue
+                  ? 'Belum terhubung'
+                  : dirty
+                    ? 'Belum disimpan'
+                    : 'Semua tersimpan'}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={dark ? 'Gunakan tema terang' : 'Gunakan tema gelap'}
+              onClick={() => setDark(!dark)}
+            >
+              {dark ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
+            </Button>
           </div>
         </div>
       </header>
       <main className="workspace" id="calculator">
         <div className="page-intro">
-          <Button
-            className="desktop-import"
-            variant="outline"
-            color="gray"
-            onClick={openImport}
-          >
-            <DownloadIcon />
-            Import resep
-          </Button>
+          <div>
+            <h1>Resep & biaya</h1>
+            <p>Takaran pas. Harga jual jelas.</p>
+          </div>
+          <div className="intro-actions">
+            <div className="intro-export-actions">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCopyFallback('');
+                  setImportOpen(true);
+                }}
+              >
+                <Download aria-hidden="true" />
+                Import
+              </Button>
+              <Button
+                variant="outline"
+                onClick={downloadAllRecipes}
+                disabled={!recipes.length}
+              >
+                <Download aria-hidden="true" />
+                Excel
+              </Button>
+            </div>
+            <Button
+              className="desktop-save"
+              onClick={saveCurrentRecipe}
+              disabled={saving || loading || (!dirty && !connectionIssue)}
+            >
+              <SaveIcon
+                className={saving ? 'animate-spin' : ''}
+                aria-hidden="true"
+              />
+              {saveLabel}
+            </Button>
+          </div>
         </div>
-        {storageIssue && (
-          <Callout.Root color="red" role="alert">
-            <Callout.Icon>
-              <ExclamationTriangleIcon />
-            </Callout.Icon>
-            <Callout.Text>{storageIssue}</Callout.Text>
-          </Callout.Root>
+        {connectionIssue && (
+          <div className="connection-notice" role="alert">
+            <TriangleAlert aria-hidden="true" />
+            <div>
+              <strong>Resep belum dapat disinkronkan</strong>
+              <p>{connectionIssue}</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={refreshRecipes}
+              disabled={loading}
+            >
+              {loading ? 'Memuat...' : 'Coba lagi'}
+            </Button>
+          </div>
         )}
-        <div className="menu-identity">
+        <section
+          className="recipe-library"
+          aria-label={connectionIssue ? 'Resep awal' : 'Resep tersimpan'}
+        >
+          <div className="library-label">
+            <span>{connectionIssue ? 'Resep awal' : 'Resep tersimpan'}</span>
+            {!loading && <span>{recipes.length}</span>}
+          </div>
+          <div className="recipe-library-items">
+            {loading ? (
+              <div className="library-skeleton" aria-label="Memuat resep" />
+            ) : (
+              recipes.map((recipe) => (
+                <div
+                  className={`recipe-tab ${draft.id === recipe.id ? 'is-selected' : ''}`}
+                  key={recipe.id}
+                >
+                  <button
+                    className="recipe-tab-open"
+                    type="button"
+                    onClick={() => openRecipe(recipe)}
+                    aria-pressed={draft.id === recipe.id}
+                  >
+                    {recipe.name}
+                    {draft.id === recipe.id && <Check aria-hidden="true" />}
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="recipe-tab-delete"
+                    aria-label={`Hapus resep ${recipe.name}`}
+                    onClick={() => confirmDelete(recipe)}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </div>
+              ))
+            )}
+            <Button variant="ghost" className="new-recipe" onClick={newRecipe}>
+              <Plus aria-hidden="true" />
+              Resep baru
+            </Button>
+          </div>
+        </section>
+        <section className="menu-identity" aria-label="Pengaturan resep">
           <Field label="Nama minuman">
             {(fieldId) => (
-              <TextField.Root
+              <Input
                 id={fieldId}
-                size="3"
                 value={draft.name}
                 onChange={(e) => update({ name: e.target.value })}
                 placeholder="Contoh: Kopi Brown Sugar"
+                maxLength={160}
               />
             )}
           </Field>
-          <Button
-            variant="ghost"
-            color="gray"
-            onClick={() => setResetOpen(true)}
+          <Field
+            label="Jumlah produksi"
+            error={cupInvalid ? 'Masukkan 1–100.000 cup.' : ''}
           >
-            <PlusIcon />
-            Resep baru
-          </Button>
-        </div>
+            {(fieldId) => (
+              <div className="cup-stepper">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Kurangi jumlah cup"
+                  disabled={Number(draft.cups) <= 1}
+                  onClick={() =>
+                    update({ cups: Math.max(1, Number(draft.cups) - 1) })
+                  }
+                >
+                  <Minus aria-hidden="true" />
+                </Button>
+                <Input
+                  id={fieldId}
+                  type="number"
+                  min={1}
+                  max={100000}
+                  step={1}
+                  inputMode="numeric"
+                  value={draft.cups}
+                  onChange={(e) => update({ cups: e.target.value })}
+                  aria-label="Jumlah cup"
+                  aria-invalid={cupInvalid || undefined}
+                />
+                <span>cup</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Tambah jumlah cup"
+                  disabled={Number(draft.cups) >= 100000}
+                  onClick={() =>
+                    update({ cups: Math.min(100000, Number(draft.cups) + 1) })
+                  }
+                >
+                  <Plus aria-hidden="true" />
+                </Button>
+              </div>
+            )}
+          </Field>
+          <p className="batch-help">
+            Resep disusun untuk <strong>1 cup</strong>.<br />
+            Kebutuhan produksi dihitung otomatis.
+          </p>
+        </section>
         <div className="calculator-layout">
           <div className="editor-column">
             <Ingredients
               items={draft.items}
+              cups={result.cups}
               onChange={(items) =>
-                update((d) => ({
-                  items: typeof items === "function" ? items(d.items) : items,
+                update((menu) => ({
+                  items:
+                    typeof items === 'function' ? items(menu.items) : items,
                 }))
               }
               notify={notify}
             />
+            <section
+              className="panel settings-panel"
+              aria-label="Pengaturan biaya dan harga"
+            >
+              <Pricing menu={draft} update={update} result={result} />
+              <Overheads
+                menu={draft}
+                update={update}
+                result={result}
+                notify={notify}
+              />
+            </section>
           </div>
-          <Summary
-            menu={draft}
-            update={update}
-            result={result}
-            canCopy={canCopy}
-            onCopy={copyRecipe}
-            notify={notify}
-          />
+          <Summary result={result} canCopy={canCopy} onCopy={copyRecipe} />
         </div>
       </main>
       <div className="mobile-action-bar">
-        <a href="#summary">
-          <span>
-            {showSellingPrice ? "Harga jual / cup" : "Total HPP / cup"}
-          </span>
+        <a href="#summary" aria-label="Lihat ringkasan biaya">
+          <span>{result.marginActive ? 'Harga jual / cup' : 'HPP / cup'}</span>
           <strong>
-            {showSellingPrice
-              ? rupiah(result.price)
-              : result.cost === null
-                ? "Periksa bahan"
-                : rupiah(result.cost)}
+            {displayPrice === null ? '—' : rupiah(displayPrice)}
+            <ArrowDown aria-hidden="true" />
           </strong>
-          <ArrowDownIcon />
         </a>
-        <div>
-          <Button variant="outline" color="gray" onClick={openImport}>
-            <DownloadIcon />
-            Import resep
-          </Button>
-          <Button
-            highContrast
-            onClick={copyRecipe}
-            disabled={!canCopy}
-            aria-label="Salin tabel HPP"
-          >
-            <CopyIcon />
-            Salin
-          </Button>
-        </div>
+        <Button
+          onClick={saveCurrentRecipe}
+          disabled={saving || loading || (!dirty && !connectionIssue)}
+        >
+          <SaveIcon
+            className={saving ? 'animate-spin' : ''}
+            aria-hidden="true"
+          />
+          {saveLabel}
+        </Button>
       </div>
       <TransferDialog
         open={importOpen}
         onOpenChange={setImportOpen}
-        onImport={importMenu}
+        onImport={(menu) => {
+          touched.current = true;
+          setDraft(normalizeMenu(menu));
+          setSavedSignature('');
+          notify('Resep berhasil diimport.');
+        }}
         copyFallback={copyFallback}
       />
-      <AlertDialog.Root open={resetOpen} onOpenChange={setResetOpen}>
-        <AlertDialog.Content maxWidth="450px">
-          <AlertDialog.Title>Mulai resep baru?</AlertDialog.Title>
-          <AlertDialog.Description>
-            Resep saat ini akan diganti. Salin tabel HPP terlebih dahulu jika
-            ingin menggunakannya lagi.
-          </AlertDialog.Description>
-          <div className="dialog-actions">
-            <AlertDialog.Cancel>
-              <Button variant="soft" color="gray">
-                Batal
-              </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action>
-              <Button
-                highContrast
-                onClick={() => {
-                  const previous = structuredClone(draft);
-                  setDraft(freshMenu());
-                  notify("Resep baru siap diisi.", () => setDraft(previous));
-                }}
-              >
-                Mulai baru
-              </Button>
-            </AlertDialog.Action>
-          </div>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
+      <AlertDialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{pendingAction?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingAction(null)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={pendingAction?.destructive ? 'btn-error' : ''}
+              onClick={async () => {
+                const action = pendingAction?.action;
+                setPendingAction(null);
+                await action?.();
+              }}
+            >
+              {pendingAction?.label}
+              <ChevronRight aria-hidden="true" />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Toaster
         position="bottom-center"
-        theme={appearance}
+        theme={dark ? 'dark' : 'light'}
         closeButton
         visibleToasts={2}
-        offset={{ bottom: 22 }}
-        mobileOffset={{
-          bottom: "calc(122px + env(safe-area-inset-bottom))",
-        }}
-        icons={{ success: <CheckCircledIcon /> }}
-        toastOptions={{
-          className: "hpp-toast",
-          duration: 3500,
-          style: {
-            background: "var(--surface)",
-            borderColor: "var(--border)",
-            color: "var(--ink)",
-            borderRadius: "14px",
-            boxShadow: "var(--shadow)",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontSize: "13px",
-          },
-          actionButtonStyle: {
-            background: "var(--accent)",
-            color: "#fff",
-            borderRadius: "8px",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-          },
-        }}
+        toastOptions={{ className: 'hpp-toast' }}
+        mobileOffset={{ bottom: 'calc(94px + env(safe-area-inset-bottom))' }}
       />
-    </Theme>
+    </div>
   );
 }

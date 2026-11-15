@@ -1,22 +1,18 @@
-import { IconButton } from "@radix-ui/themes";
-
-/** Shared, labeled icon-only action used by repeatable rows. */
 export default function IconAction({
   label,
-  className = "",
+  className = '',
   children,
   ...props
 }) {
   return (
-    <IconButton
+    <button
       {...props}
-      className={`icon-action ${className}`.trim()}
-      variant="ghost"
-      color="gray"
+      type="button"
+      className={`btn btn-ghost btn-square icon-action ${className}`.trim()}
       aria-label={label}
       title={label}
     >
       {children}
-    </IconButton>
+    </button>
   );
 }

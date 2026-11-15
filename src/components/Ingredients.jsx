@@ -1,9 +1,164 @@
-import { Button, Switch, TextField, Badge } from "@radix-ui/themes";
-import { PlusIcon, TrashIcon } from "@radix-ui/react-icons";
-import { Choice, NumberInput } from "./Fields.jsx";
-import IconAction from "./IconAction.jsx";
-import { ingredientCost, rupiah, units, newIngredient } from "../model.js";
-export default function Ingredients({ items, onChange, notify }) {
+import { useState } from 'react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { Field, Choice, NumberInput } from './Fields.jsx';
+import IconAction from './IconAction.jsx';
+import {
+  decimal,
+  ingredientCost,
+  rupiah,
+  units,
+  newIngredient,
+} from '../model.js';
+
+function IngredientRow({ item, index, cups, update, remove }) {
+  const [expanded, setExpanded] = useState(index === 0);
+  const result = ingredientCost(item);
+  return (
+    <article
+      className={`ingredient-row ${expanded ? 'is-expanded' : ''} ${item.active ? '' : 'is-inactive'}`}
+    >
+      <div className="ingredient-mobile-heading">
+        <button
+          type="button"
+          className="ingredient-disclosure"
+          aria-expanded={expanded}
+          aria-controls={`fields-${item.id}`}
+          onClick={() => setExpanded((open) => !open)}
+        >
+          <span>
+            <strong>{item.name || 'Bahan baru'}</strong>
+            <small>
+              {item.active
+                ? `${decimal(item.usage)} ${item.usageUnit} / cup`
+                : 'Tidak dihitung'}
+            </small>
+          </span>
+          <span className="ingredient-heading-cost">
+            {item.active && !result.error ? rupiah(result.cost) : '—'}
+            <ChevronDown aria-hidden="true" />
+          </span>
+        </button>
+      </div>
+      <div className="ingredient-fields" id={`fields-${item.id}`}>
+        <div className="ingredient-name-field">
+          <Field label="Komponen">
+            {(fieldId) => (
+              <input
+                className="input input-bordered"
+                id={fieldId}
+                value={item.name}
+                onChange={(e) => update({ name: e.target.value })}
+                aria-label={`Nama komponen ${index + 1}`}
+                placeholder="Nama bahan"
+              />
+            )}
+          </Field>
+          <div className="ingredient-options">
+            <Choice
+              value={item.kind}
+              onChange={(kind) => update({ kind })}
+              label={`Jenis ${item.name || index + 1}`}
+              options={[
+                { value: 'ingredient', label: 'Bahan' },
+                { value: 'packaging', label: 'Kemasan' },
+              ]}
+            />
+            <label className="switch-label">
+              <input
+                className="toggle toggle-primary"
+                type="checkbox"
+                checked={item.active}
+                onChange={(event) => update({ active: event.target.checked })}
+                aria-label={`Sertakan ${item.name || 'komponen'}`}
+              />
+              <span>{item.active ? 'Aktif' : 'Nonaktif'}</span>
+            </label>
+          </div>
+        </div>
+        <Field className="price-field" label="Harga beli">
+          {(fieldId) => (
+            <NumberInput
+              id={fieldId}
+              money
+              value={item.price}
+              onChange={(price) => update({ price })}
+              label={`Harga beli ${item.name || index + 1}`}
+            />
+          )}
+        </Field>
+        <Field label="Isi kemasan">
+          {(fieldId) => (
+            <div className="quantity-input">
+              <NumberInput
+                id={fieldId}
+                value={item.packQty}
+                onChange={(packQty) => update({ packQty })}
+                label={`Isi kemasan ${item.name || index + 1}`}
+                min={0.001}
+                invalid={item.active && !(Number(item.packQty) > 0)}
+              />
+              <Choice
+                value={item.packUnit}
+                onChange={(packUnit) => update({ packUnit })}
+                options={units}
+                label={`Satuan kemasan ${item.name || index + 1}`}
+              />
+            </div>
+          )}
+        </Field>
+        <Field label="Pakai / cup">
+          {(fieldId) => (
+            <div className="quantity-input">
+              <NumberInput
+                id={fieldId}
+                value={item.usage}
+                onChange={(usage) => update({ usage })}
+                label={`Pemakaian ${item.name || index + 1}`}
+              />
+              <Choice
+                value={item.usageUnit}
+                onChange={(usageUnit) => update({ usageUnit })}
+                options={units}
+                label={`Satuan pemakaian ${item.name || index + 1}`}
+              />
+            </div>
+          )}
+        </Field>
+        <div className="ingredient-cost-field">
+          <strong className={result.error ? 'field-error' : ''}>
+            {!item.active
+              ? 'Tidak dihitung'
+              : result.error
+                ? 'Periksa input'
+                : rupiah(result.cost)}
+          </strong>
+          <IconAction
+            label={`Hapus ${item.name || 'komponen'}`}
+            onClick={remove}
+          >
+            <Trash2 aria-hidden="true" />
+          </IconAction>
+        </div>
+        {cups > 1 && item.active && !result.error && (
+          <p className="ingredient-batch-note">
+            Untuk {decimal(cups)} cup:{' '}
+            <strong>
+              {decimal(Number(item.usage) * cups)} {item.usageUnit}
+            </strong>
+            <span>{rupiah(result.cost * cups)}</span>
+          </p>
+        )}
+        {result.error && (
+          <p className="field-error ingredient-error" role="status">
+            {result.error}
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default function Ingredients({ items, cups = 1, onChange, notify }) {
   const update = (index, patch) =>
     onChange(
       items.map((item, i) => (i === index ? { ...item, ...patch } : item))
@@ -11,7 +166,7 @@ export default function Ingredients({ items, onChange, notify }) {
   const remove = (index) => {
     const removed = items[index];
     onChange(items.filter((_, i) => i !== index));
-    notify("Komponen dihapus.", () =>
+    notify('Komponen dihapus.', () =>
       onChange((current) => {
         const next = [...current];
         next.splice(Math.min(index, next.length), 0, removed);
@@ -25,154 +180,54 @@ export default function Ingredients({ items, onChange, notify }) {
       aria-labelledby="recipe-heading"
     >
       <div className="panel-heading">
-        <h2 id="recipe-heading">Bahan & kemasan</h2>
-        <Badge color="gray" variant="soft">
-          {items.filter((i) => i.active).length}/{items.length} aktif
-        </Badge>
+        <div>
+          <h2 id="recipe-heading">Bahan & kemasan</h2>
+          <p>Takaran dasar untuk 1 cup.</p>
+        </div>
+        <span className="muted-count">
+          {items.filter((item) => item.active).length} aktif
+        </span>
       </div>
-      <div
-        className="table-scroll"
-        role="region"
-        aria-label="Tabel bahan dan kemasan"
-        tabIndex={0}
-      >
-        <table className="ingredients-table">
-          <colgroup>
-            <col className="ingredient-name-col" />
-            <col className="ingredient-price-col" />
-            <col className="ingredient-size-col" />
-            <col className="ingredient-size-col" />
-            <col className="ingredient-cost-col" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">Komponen</th>
-              <th scope="col">Harga beli</th>
-              <th scope="col">Isi kemasan</th>
-              <th scope="col">Pakai / cup</th>
-              <th scope="col">Biaya / cup</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => {
-              const result = ingredientCost(item);
-              return (
-                <tr key={item.id} className={item.active ? "" : "inactive-row"}>
-                  <td>
-                    <TextField.Root
-                      size="3"
-                      value={item.name}
-                      onChange={(e) => update(index, { name: e.target.value })}
-                      aria-label={`Nama komponen ${index + 1}`}
-                      placeholder="Nama bahan"
-                      title={item.name}
-                    />
-                    <div className="row-options">
-                      <Choice
-                        value={item.kind}
-                        onChange={(kind) => update(index, { kind })}
-                        label={`Jenis ${item.name || index + 1}`}
-                        options={[
-                          { value: "ingredient", label: "Bahan" },
-                          { value: "packaging", label: "Kemasan" },
-                        ]}
-                      />
-                      <label className="switch-label">
-                        <Switch
-                          size="1"
-                          checked={item.active}
-                          onCheckedChange={(active) =>
-                            update(index, { active })
-                          }
-                          aria-label={`Sertakan ${item.name || "komponen"} dalam perhitungan`}
-                        />
-                      </label>
-                    </div>
-                  </td>
-                  <td>
-                    <NumberInput
-                      money
-                      value={item.price}
-                      onChange={(price) => update(index, { price })}
-                      label={`Harga beli ${item.name || index + 1}`}
-                    />
-                  </td>
-                  <td>
-                    <div className="quantity-input">
-                      <NumberInput
-                        value={item.packQty}
-                        onChange={(packQty) => update(index, { packQty })}
-                        label={`Isi kemasan ${item.name || index + 1}`}
-                        invalid={item.active && !(Number(item.packQty) > 0)}
-                      />
-                      <Choice
-                        value={item.packUnit}
-                        onChange={(packUnit) => update(index, { packUnit })}
-                        options={units}
-                        label={`Satuan kemasan ${item.name || index + 1}`}
-                      />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="quantity-input">
-                      <NumberInput
-                        value={item.usage}
-                        onChange={(usage) => update(index, { usage })}
-                        label={`Pemakaian ${item.name || index + 1}`}
-                      />
-                      <Choice
-                        value={item.usageUnit}
-                        onChange={(usageUnit) => update(index, { usageUnit })}
-                        options={units}
-                        label={`Satuan pemakaian ${item.name || index + 1}`}
-                      />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="row-result">
-                      <strong className={result.error ? "field-error" : ""}>
-                        {!item.active
-                          ? "Tidak dihitung"
-                          : result.error
-                            ? "Periksa input"
-                            : rupiah(result.cost)}
-                      </strong>
-                      <IconAction
-                        className="row-delete"
-                        onClick={() => remove(index)}
-                        label={`Hapus ${item.name || "komponen"}`}
-                      >
-                        <TrashIcon />
-                      </IconAction>
-                    </div>
-                    {result.error && (
-                      <small className="field-error row-error">
-                        {result.error}
-                      </small>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {!items.length && (
-              <tr>
-                <td colSpan={5} className="empty-table">
-                  Belum ada bahan. Tambahkan bahan pertama untuk mulai
-                  menghitung.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="ingredient-table-head" aria-hidden="true">
+        <span>Komponen</span>
+        <span>Harga beli</span>
+        <span>Isi kemasan</span>
+        <span>Pakai / cup</span>
+        <span>Biaya / cup</span>
       </div>
+      <div className="ingredient-list">
+        {items.map((item, index) => (
+          <IngredientRow
+            key={item.id}
+            item={item}
+            index={index}
+            cups={cups}
+            update={(patch) => update(index, patch)}
+            remove={() => remove(index)}
+          />
+        ))}
+      </div>
+      {!items.length && (
+        <div className="empty-state">
+          <h3>Mulai dengan bahan pertama</h3>
+          <p>
+            Isi harga beli, ukuran kemasan, dan takaran yang digunakan untuk 1
+            cup.
+          </p>
+        </div>
+      )}
       <div className="panel-footer">
-        <Button
-          variant="soft"
+        <button
+          className="btn btn-outline"
+          type="button"
           onClick={() => onChange([...items, newIngredient()])}
         >
-          <PlusIcon />
+          <Plus aria-hidden="true" />
           Tambah bahan
-        </Button>
+        </button>
+        <span style={{ color: 'red' }}>
+          *Bahan nonaktif tidak masuk hitungan.
+        </span>
       </div>
     </section>
   );

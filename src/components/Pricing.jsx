@@ -1,11 +1,10 @@
-import { Slider, Switch } from "@radix-ui/themes";
-import { Field, NumberInput } from "./Fields.jsx";
-import { decimal } from "../model.js";
+import { Field, NumberInput } from './Fields.jsx';
+import { decimal } from '../model.js';
 
 const presets = [
-  { name: "Kompetitif", value: 25 },
-  { name: "Standar", value: 45 },
-  { name: "Premium", value: 65 },
+  { name: 'Kompetitif', value: 25 },
+  { name: 'Standar', value: 45 },
+  { name: 'Premium', value: 65 },
 ];
 
 export default function Pricing({ menu, update, result }) {
@@ -26,26 +25,26 @@ export default function Pricing({ menu, update, result }) {
 
   const handlePreset = (percent) => {
     update((draft) => ({
-      pricing: { ...draft.pricing, percent, customPrice: "" },
+      pricing: { ...draft.pricing, percent, customPrice: '' },
     }));
   };
 
   const handleSlider = ([percent]) => {
     update((draft) => ({
-      pricing: { ...draft.pricing, percent, customPrice: "" },
+      pricing: { ...draft.pricing, percent, customPrice: '' },
     }));
   };
 
   const handlePercentChange = (percent) => {
     update((draft) => ({
-      pricing: { ...draft.pricing, percent, customPrice: "" },
+      pricing: { ...draft.pricing, percent, customPrice: '' },
     }));
   };
 
   const handleCustomPriceChange = (val) => {
-    if (val === "" || val === null) {
+    if (val === '' || val === null) {
       update((draft) => ({
-        pricing: { ...draft.pricing, customPrice: "" },
+        pricing: { ...draft.pricing, customPrice: '' },
       }));
       return;
     }
@@ -73,9 +72,9 @@ export default function Pricing({ menu, update, result }) {
   };
 
   return (
-    <div
+    <section
       className={
-        "summary-subpanel pricing-subpanel" + (active ? "" : " is-inactive")
+        'settings-section pricing-subpanel' + (active ? '' : ' is-inactive')
       }
       id="pricing"
     >
@@ -83,17 +82,18 @@ export default function Pricing({ menu, update, result }) {
         <div className="subpanel-title-group">
           <h3 className="subpanel-title">Margin keuntungan</h3>
           <span className="subpanel-meta">
-            {active ? `${decimal(displayPercent)}%` : "Nonaktif"}
+            {active ? `${decimal(displayPercent)}%` : 'Nonaktif'}
           </span>
         </div>
         <label className="section-toggle">
-          <Switch
-            size="1"
+          <input
+            className="toggle toggle-primary"
+            type="checkbox"
             checked={active}
-            onCheckedChange={(marginActive) => update({ marginActive })}
+            onChange={(event) => update({ marginActive: event.target.checked })}
             aria-label="Aktifkan margin keuntungan"
           />
-          <span>{active ? "Aktif" : "Nonaktif"}</span>
+          <span>{active ? 'Aktif' : 'Nonaktif'}</span>
         </label>
       </div>
 
@@ -115,7 +115,7 @@ export default function Pricing({ menu, update, result }) {
                 <button
                   key={preset.name}
                   type="button"
-                  className={"preset" + (isSelected ? " selected" : "")}
+                  className={'preset' + (isSelected ? ' selected' : '')}
                   aria-pressed={isSelected}
                   onClick={() => handlePreset(preset.value)}
                 >
@@ -131,13 +131,15 @@ export default function Pricing({ menu, update, result }) {
               <label id="profit-slider-label">Atur margin</label>
               <span className="slider-value-badge">{sliderValue}%</span>
             </div>
-            <Slider
+            <input
+              className="range range-primary"
+              type="range"
               aria-labelledby="profit-slider-label"
-              value={[sliderValue]}
+              value={sliderValue}
               min={0}
               max={90}
               step={1}
-              onValueChange={handleSlider}
+              onChange={(event) => handleSlider([Number(event.target.value)])}
             />
             <div className="slider-scale" aria-hidden="true">
               <span>0%</span>
@@ -146,17 +148,17 @@ export default function Pricing({ menu, update, result }) {
           </div>
 
           <div className="pricing-inputs-grid">
-            <Field label="Custom harga jual">
+            <Field label="Harga jual / cup">
               {(fieldId) => (
                 <NumberInput
                   id={fieldId}
                   money
-                  size="2"
+
                   label="Custom harga jual"
                   value={pricing.customPrice}
                   onChange={handleCustomPriceChange}
                   placeholder={
-                    result.price ? String(result.price) : "Contoh: 15.000"
+                    result.price ? String(result.price) : 'Contoh: 15.000'
                   }
                 />
               )}
@@ -165,7 +167,7 @@ export default function Pricing({ menu, update, result }) {
               {(fieldId) => (
                 <NumberInput
                   id={fieldId}
-                  size="2"
+
                   label="Margin keuntungan"
                   value={displayPercent}
                   onChange={handlePercentChange}
@@ -177,6 +179,6 @@ export default function Pricing({ menu, update, result }) {
           </div>
         </fieldset>
       )}
-    </div>
+    </section>
   );
 }

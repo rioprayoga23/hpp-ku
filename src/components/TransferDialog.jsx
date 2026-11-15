@@ -1,11 +1,7 @@
-import { useMemo, useState } from "react";
-import { Button, Dialog, TextArea, Callout } from "@radix-ui/themes";
-import {
-  CheckCircledIcon,
-  ExclamationTriangleIcon,
-} from "@radix-ui/react-icons";
-import { calculate, rupiah } from "../model.js";
-import { importRecipe } from "../recipeTransfer.js";
+import { useMemo, useState } from 'react';
+import { Check, TriangleAlert } from 'lucide-react';
+import { calculate, rupiah } from '../model.js';
+import { importRecipe } from '../recipeTransfer.js';
 
 export default function TransferDialog({
   open,
@@ -13,7 +9,7 @@ export default function TransferDialog({
   onImport,
   copyFallback,
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState('');
   const parsed = useMemo(() => {
     if (!text.trim()) return {};
     try {
@@ -22,86 +18,95 @@ export default function TransferDialog({
       return { error: error.message };
     }
   }, [text]);
-  const importedResult = parsed.menu ? calculate(parsed.menu) : null;
-
+  if (!open) return null;
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content maxWidth="620px">
-        <Dialog.Title>
-          {copyFallback ? "Salin tabel secara manual" : "Import resep"}
-        </Dialog.Title>
-        <Dialog.Description>
+    <div
+      className="modal modal-open"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="transfer-title"
+    >
+      <div className="modal-box import-dialog">
+        <button
+          className="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+          type="button"
+          aria-label="Tutup"
+          onClick={() => onOpenChange(false)}
+        >
+          ×
+        </button>
+        <h2 id="transfer-title" className="text-lg font-semibold">
+          {copyFallback ? 'Salin tabel secara manual' : 'Import resep'}
+        </h2>
+        <p className="text-sm text-base-content/70 mt-1">
           {copyFallback
-            ? "Clipboard tidak tersedia. Pilih dan salin tabel di bawah."
-            : "Tempel tabel dari Excel, Markdown, atau hasil Salin tabel. Format resep HPP-Ku lama juga bisa diimpor."}
-        </Dialog.Description>
-        <label className="paste-label" htmlFor="recipe-paste">
-          {copyFallback ? "Tabel HPP" : "Tempel tabel atau resep di sini"}
-        </label>
-        <TextArea
-          id="recipe-paste"
-          size="3"
-          rows={10}
-          value={copyFallback || text}
-          readOnly={Boolean(copyFallback)}
-          onChange={(event) => setText(event.target.value)}
-          maxLength={100000}
-          placeholder={
-            "No	Menu	Komposisi	Harga Beli Kemasan	Ukuran Kemasan	Takaran / Cup	HPP / Porsi"
-          }
-          onFocus={(event) => {
-            if (copyFallback) event.target.select();
-          }}
-        />
-        {!copyFallback && parsed.error && (
-          <Callout.Root color="red" className="import-feedback">
-            <Callout.Icon>
-              <ExclamationTriangleIcon />
-            </Callout.Icon>
-            <Callout.Text>{parsed.error}</Callout.Text>
-          </Callout.Root>
+            ? 'Pilih dan salin tabel di bawah.'
+            : 'Tempel tabel dari Excel, Markdown, atau hasil Salin tabel HPP-Ku.'}
+        </p>
+        <div className="field mt-5">
+          <label htmlFor="recipe-paste">
+            {copyFallback ? 'Tabel HPP' : 'Tabel atau resep'}
+          </label>
+          <textarea
+            id="recipe-paste"
+            className="textarea textarea-bordered w-full"
+            rows={10}
+            value={copyFallback || text}
+            readOnly={Boolean(copyFallback)}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={100000}
+            placeholder="Tempel resep di sini..."
+            onFocus={(e) => {
+              if (copyFallback) e.target.select();
+            }}
+          />
+        </div>
+        {parsed.error && (
+          <p className="transfer-error">
+            <TriangleAlert aria-hidden="true" />
+            {parsed.error}
+          </p>
         )}
-        {!copyFallback && parsed.menu && (
-          <Callout.Root className="import-feedback">
-            <Callout.Icon>
-              <CheckCircledIcon />
-            </Callout.Icon>
-            <Callout.Text>
-              <strong>{parsed.menu.name || "Resep tanpa nama"}</strong>
-              <br />
-              {parsed.menu.items.length} komponen aktif · HPP / cup:{" "}
-              {rupiah(importedResult.cost)}
-            </Callout.Text>
-          </Callout.Root>
+        {parsed.menu && (
+          <p className="transfer-success">
+            <Check aria-hidden="true" />
+            {parsed.menu.name || 'Resep siap digunakan'} · HPP{' '}
+            {rupiah(calculate(parsed.menu).cost)}
+          </p>
         )}
-        <div className="dialog-actions">
-          <Dialog.Close>
-            <Button variant="soft" color="gray">
-              Batal
-            </Button>
-          </Dialog.Close>
+        <div className="modal-action">
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={() => onOpenChange(false)}
+          >
+            Batal
+          </button>
           {copyFallback ? (
-            <Button
-              highContrast
-              onClick={() => document.getElementById("recipe-paste")?.select()}
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => document.getElementById('recipe-paste')?.select()}
             >
               Pilih semua teks
-            </Button>
+            </button>
           ) : (
-            <Button
-              highContrast
+            <button
+              className="btn btn-primary"
+              type="button"
               disabled={!parsed.menu}
               onClick={() => {
                 onImport(parsed.menu);
-                setText("");
+                setText('');
                 onOpenChange(false);
               }}
             >
               Gunakan resep
-            </Button>
+            </button>
           )}
         </div>
-      </Dialog.Content>
-    </Dialog.Root>
+      </div>
+      <div className="modal-backdrop" onClick={() => onOpenChange(false)} />
+    </div>
   );
 }

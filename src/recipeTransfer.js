@@ -5,32 +5,27 @@ import {
   id,
   ingredientCost,
   units,
-} from "./model.js";
+} from './model.js';
 
 const clean = (value) =>
-  String(value ?? "")
-    .replace(/[\r\n\t]/g, " ")
+  String(value ?? '')
+    .replace(/[\r\n\t]/g, ' ')
     .trim();
 const rawNumber = (value) => String(Math.round(Number(value) || 0));
-const groupedNumber = (value) =>
-  new Intl.NumberFormat("id-ID", {
-    maximumFractionDigits: 0,
-    useGrouping: true,
-  }).format(Number(value) || 0);
 const quantityNumber = (value) =>
-  new Intl.NumberFormat("id-ID", {
+  new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 12,
     useGrouping: false,
   }).format(Number(value) || 0);
 const htmlEscape = (value) =>
-  String(value ?? "").replace(
+  String(value ?? '').replace(
     /[&<>"]/g,
     (character) =>
       ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
       })[character]
   );
 const excelText = (value) => {
@@ -45,12 +40,12 @@ function copiedRows(menu) {
     index,
     isItem: true,
     cells: [
-      "1",
-      excelText(menu.name || "(tanpa nama)"),
-      excelText(item.name || "(tanpa nama)"),
+      '1',
+      excelText(menu.name || '(tanpa nama)'),
+      excelText(item.name || '(tanpa nama)'),
       rawNumber(item.price),
-      quantityNumber(item.packQty) + " " + item.packUnit,
-      quantityNumber(item.usage) + " " + item.usageUnit,
+      quantityNumber(item.packQty) + ' ' + item.packUnit,
+      quantityNumber(item.usage) + ' ' + item.usageUnit,
       rawNumber(ingredientCost(item).cost),
     ],
   }));
@@ -63,12 +58,12 @@ function copiedRows(menu) {
       isOverhead: true,
       isSummary: true,
       cells: [
-        "",
-        "",
-        "",
-        "",
-        "",
-        "Biaya Operasional / Cup",
+        '',
+        '',
+        '',
+        '',
+        '',
+        'Biaya Operasional / Cup',
         rawNumber(result.overhead),
       ],
     });
@@ -79,33 +74,74 @@ function copiedRows(menu) {
   rows.push({
     total: true,
     isSummary: true,
-    cells: ["", "", "", "", "", "TOTAL HPP / CUP", hppTotal],
+    cells: ['', '', '', '', '', 'TOTAL HPP / CUP', hppTotal],
   });
 
   if (result.price !== null) {
     rows.push({
       isPrice: true,
       isSummary: true,
-      cells: ["", "", "", "", "", "Harga Jual", rawNumber(result.price)],
+      cells: ['', '', '', '', '', 'Harga Jual', rawNumber(result.price)],
     });
     rows.push({
       isProfit: true,
       isSummary: true,
-      cells: ["", "", "", "", "", "Estimasi laba", rawNumber(result.profit)],
+      cells: ['', '', '', '', '', 'Estimasi laba', rawNumber(result.profit)],
     });
     rows.push({
       isMargin: true,
       isSummary: true,
       cells: [
-        "",
-        "",
-        "",
-        "",
-        "",
-        "Margin aktual",
-        decimal(result.margin) + "%",
+        '',
+        '',
+        '',
+        '',
+        '',
+        'Margin aktual',
+        decimal(result.margin) + '%',
       ],
     });
+    if (result.cups > 1) {
+      rows.push({
+        isBatch: true,
+        isSummary: true,
+        cells: [
+          '',
+          '',
+          '',
+          '',
+          '',
+          `TOTAL HPP / ${result.cups} CUP`,
+          rawNumber(result.batchCost),
+        ],
+      });
+      rows.push({
+        isBatch: true,
+        isSummary: true,
+        cells: [
+          '',
+          '',
+          '',
+          '',
+          '',
+          `Harga Jual Total / ${result.cups} Cup`,
+          rawNumber(result.batchPrice),
+        ],
+      });
+      rows.push({
+        isBatch: true,
+        isSummary: true,
+        cells: [
+          '',
+          '',
+          '',
+          '',
+          '',
+          `Estimasi Laba Total / ${result.cups} Cup`,
+          rawNumber(result.batchProfit),
+        ],
+      });
+    }
   }
 
   return rows;
@@ -121,18 +157,18 @@ export function copiedHppTotal(menu) {
 
 export function exportRecipe(menu) {
   const header = [
-    "No",
-    "Menu",
-    "Komposisi",
-    "Harga Beli Kemasan",
-    "Ukuran Kemasan",
-    "Takaran / Cup",
-    "HPP / Porsi",
+    'No',
+    'Menu',
+    'Komposisi',
+    'Harga Beli Kemasan',
+    'Ukuran Kemasan',
+    'Takaran / Cup',
+    'HPP / Porsi',
   ];
   const rows = copiedRows(menu).map((row) =>
     row.cells
       .map((value, index) => {
-        if (value === "") return value;
+        if (value === '') return value;
         if (row.isItem && (index === 3 || index === 6)) {
           return rawNumber(value);
         }
@@ -141,53 +177,53 @@ export function exportRecipe(menu) {
         }
         return value;
       })
-      .join("\t")
+      .join('\t')
   );
-  return [header.join("\t"), ...rows].join("\n");
+  return [header.join('\t'), ...rows].join('\n');
 }
 
 export function exportRecipeHtml(menu) {
   const rows = copiedRows(menu);
   const itemCount = rows.filter((row) => row.isItem).length;
   const header = [
-    "No",
-    "Menu",
-    "Komposisi",
-    "Harga Beli Kemasan",
-    "Ukuran Kemasan",
-    "Takaran / Cup",
-    "HPP / Porsi",
+    'No',
+    'Menu',
+    'Komposisi',
+    'Harga Beli Kemasan',
+    'Ukuran Kemasan',
+    'Takaran / Cup',
+    'HPP / Porsi',
   ];
   const headerRow =
-    "<tr>" +
+    '<tr>' +
     header
       .map(
         (value) =>
           '<th style="border:1px solid #173f73;padding:6px 8px;vertical-align:middle;text-align:center;background:#214e78;color:#fff;font-weight:bold">' +
           htmlEscape(value) +
-          "</th>"
+          '</th>'
       )
-      .join("") +
-    "</tr>";
+      .join('') +
+    '</tr>';
 
   let firstSummary = true;
   const htmlRows = rows
     .map((row) => {
       if (row.isItem) {
         return (
-          "<tr>" +
+          '<tr>' +
           row.cells
             .map((value, index) => {
               if (index < 2) {
-                if (row.index > 0) return "";
+                if (row.index > 0) return '';
                 const style = [
-                  "border:1px solid #d8dee8",
-                  "padding:5px 8px",
-                  "vertical-align:middle",
-                  "mso-vertical-align-alt:middle",
-                  index === 0 ? "text-align:center" : "text-align:left",
-                ].join(";");
-                const align = index === 0 ? "center" : "left";
+                  'border:1px solid #d8dee8',
+                  'padding:5px 8px',
+                  'vertical-align:middle',
+                  'mso-vertical-align-alt:middle',
+                  index === 0 ? 'text-align:center' : 'text-align:left',
+                ].join(';');
+                const align = index === 0 ? 'center' : 'left';
                 return (
                   '<td rowspan="' +
                   itemCount +
@@ -197,47 +233,47 @@ export function exportRecipeHtml(menu) {
                   style +
                   '">' +
                   htmlEscape(value) +
-                  "</td>"
+                  '</td>'
                 );
               }
               const numeric = index === 3 || index === 6;
               const style = [
-                "border:1px solid #d8dee8",
-                "padding:5px 8px",
-                "vertical-align:middle",
-                numeric ? "text-align:right" : "text-align:left",
-                numeric ? 'mso-number-format:"\\#\\,\\#\\#0"' : "",
+                'border:1px solid #d8dee8',
+                'padding:5px 8px',
+                'vertical-align:middle',
+                numeric ? 'text-align:right' : 'text-align:left',
+                numeric ? 'mso-number-format:"\\#\\,\\#\\#0"' : '',
               ]
                 .filter(Boolean)
-                .join(";");
+                .join(';');
               const numericValue =
-                numeric && value !== ""
+                numeric && value !== ''
                   ? ' x:num="' + rawNumber(value) + '"'
-                  : "";
+                  : '';
               const displayValue =
-                numeric && value !== "" ? rawNumber(value) : value;
+                numeric && value !== '' ? rawNumber(value) : value;
               return (
-                "<td" +
+                '<td' +
                 numericValue +
                 " style='" +
                 style +
                 "'>" +
                 htmlEscape(displayValue) +
-                "</td>"
+                '</td>'
               );
             })
-            .join("") +
-          "</tr>"
+            .join('') +
+          '</tr>'
         );
       }
 
       // Summary rows
       const isFirst = firstSummary;
       if (isFirst) firstSummary = false;
-      const topBorderStyle = isFirst ? "border-top:2px solid #173f73;" : "";
+      const topBorderStyle = isFirst ? 'border-top:2px solid #173f73;' : '';
 
       return (
-        "<tr>" +
+        '<tr>' +
         row.cells
           .map((value, index) => {
             if (index < 5) {
@@ -249,136 +285,136 @@ export function exportRecipeHtml(menu) {
             }
             if (index === 5) {
               const labelStyle = [
-                "border:1px solid #d8dee8",
+                'border:1px solid #d8dee8',
                 topBorderStyle,
-                "padding:5px 8px",
-                "vertical-align:middle",
-                "text-align:left",
-                "font-weight:bold",
+                'padding:5px 8px',
+                'vertical-align:middle',
+                'text-align:left',
+                'font-weight:bold',
               ]
                 .filter(Boolean)
-                .join(";");
+                .join(';');
               return (
-                '<td style="' + labelStyle + '">' + htmlEscape(value) + "</td>"
+                '<td style="' + labelStyle + '">' + htmlEscape(value) + '</td>'
               );
             }
             // Value cell (index === 6)
             const isMargin = row.isMargin;
             const numVal = isMargin ? null : rawNumber(value);
             const valStyle = [
-              "border:1px solid #d8dee8",
+              'border:1px solid #d8dee8',
               topBorderStyle,
-              "padding:5px 8px",
-              "vertical-align:middle",
-              "text-align:right",
-              "font-weight:bold",
-              !isMargin ? 'mso-number-format:"\\#\\,\\#\\#0"' : "",
+              'padding:5px 8px',
+              'vertical-align:middle',
+              'text-align:right',
+              'font-weight:bold',
+              !isMargin ? 'mso-number-format:"\\#\\,\\#\\#0"' : '',
             ]
               .filter(Boolean)
-              .join(";");
+              .join(';');
             const xNum =
-              !isMargin && numVal !== "" ? ' x:num="' + numVal + '"' : "";
+              !isMargin && numVal !== '' ? ' x:num="' + numVal + '"' : '';
             const displayVal =
-              !isMargin && numVal !== "" ? rawNumber(value) : value;
+              !isMargin && numVal !== '' ? rawNumber(value) : value;
             return (
-              "<td" +
+              '<td' +
               xNum +
               " style='" +
               valStyle +
               "'>" +
               htmlEscape(displayVal) +
-              "</td>"
+              '</td>'
             );
           })
-          .join("") +
-        "</tr>"
+          .join('') +
+        '</tr>'
       );
     })
-    .join("");
+    .join('');
 
   return (
     '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><table><thead>' +
     headerRow +
-    "</thead><tbody>" +
+    '</thead><tbody>' +
     htmlRows +
-    "</tbody></table></body></html>"
+    '</tbody></table></body></html>'
   );
 }
 
 function parseNumber(raw, label, allowNegative = false) {
-  if (raw === "(belum diisi)") return "";
+  if (raw === '(belum diisi)') return '';
   const text = String(raw)
-    .replace(/^Rp\s*/i, "")
-    .replace(/%$/, "")
-    .replace(/\s/g, "");
+    .replace(/^Rp\s*/i, '')
+    .replace(/%$/, '')
+    .replace(/\s/g, '');
   if (!/^-?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d+)?$/.test(text))
-    throw new Error(label + ": format angka tidak dikenali.");
-  const n = Number(text.replace(/\./g, "").replace(",", "."));
+    throw new Error(label + ': format angka tidak dikenali.');
+  const n = Number(text.replace(/\./g, '').replace(',', '.'));
   if (
     !Number.isFinite(n) ||
     (!allowNegative && n < 0) ||
     Math.abs(n) > Number.MAX_SAFE_INTEGER
   )
-    throw new Error(label + ": isi angka yang valid.");
+    throw new Error(label + ': isi angka yang valid.');
   return n;
 }
 
 function quantity(raw, label) {
   const match = String(raw).match(/^(.+)\s+(ml|L|g|kg|pcs)$/);
   if (!match || !units.includes(match[2]))
-    throw new Error(label + ": sertakan satuan ml, L, g, kg, atau pcs.");
+    throw new Error(label + ': sertakan satuan ml, L, g, kg, atau pcs.');
   return [parseNumber(match[1], label), match[2]];
 }
 
 function markdownTableToTsv(text) {
   return text
-    .split("\n")
-    .filter((line) => line.includes("|"))
+    .split('\n')
+    .filter((line) => line.includes('|'))
     .map((line) => {
-      const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
-      const cells = trimmed.split("|").map((cell) =>
+      const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+      const cells = trimmed.split('|').map((cell) =>
         cell
           .trim()
-          .replace(/\*\*/g, "")
-          .replace(/__([^_]+)__/g, "$1")
-          .replace(/`/g, "")
+          .replace(/\*\*/g, '')
+          .replace(/__([^_]+)__/g, '$1')
+          .replace(/`/g, '')
       );
       if (
         cells.length &&
-        cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s/g, "")))
+        cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s/g, '')))
       )
-        return "";
-      return cells.join("\t");
+        return '';
+      return cells.join('\t');
     })
     .filter(Boolean)
-    .join("\n");
+    .join('\n');
 }
 
 function looksLikeQuantity(value) {
-  return /^.+\s+(ml|L|g|kg|pcs)$/i.test(String(value ?? "").trim());
+  return /^.+\s+(ml|L|g|kg|pcs)$/i.test(String(value ?? '').trim());
 }
 
 function importTable(text) {
   const rows = text
-    .replace(/^\uFEFF/, "")
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((line) => line.split("\t").map((cell) => cell.trim()));
+    .replace(/^\uFEFF/, '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.split('\t').map((cell) => cell.trim()));
   const oldFormat =
     (rows[0] || [])
       .map((cell) => cell.toLowerCase())
       .slice(0, 3)
-      .join("|") === "no|menu|komposisi";
+      .join('|') === 'no|menu|komposisi';
   const numberedFormat =
     !oldFormat &&
     (rows[0] || []).length >= 7 &&
-    /^\d+$/.test((rows[0] || [])[0] || "");
+    /^\d+$/.test((rows[0] || [])[0] || '');
   const menu = freshMenu();
   menu.items = [];
   menu.overheads = [];
-  menu.name = "";
+  menu.name = '';
   let hasOperationalRow = false;
-  let previousMenu = "";
+  let previousMenu = '';
 
   const addItem = (menuName, itemName, price, pack, usage) => {
     const cleanMenuName = menuName.startsWith("'")
@@ -389,22 +425,22 @@ function importTable(text) {
       : itemName;
     if (!cleanItemName) return;
     if (menu.name && cleanMenuName && menu.name !== cleanMenuName)
-      throw new Error("Salinan tabel berisi lebih dari satu nama menu.");
-    if (!menu.name && cleanMenuName && cleanMenuName !== "(tanpa nama)")
+      throw new Error('Salinan tabel berisi lebih dari satu nama menu.');
+    if (!menu.name && cleanMenuName && cleanMenuName !== '(tanpa nama)')
       menu.name = cleanMenuName;
-    const [packQty, packUnit] = quantity(pack, "Ukuran kemasan");
-    const [usageQty, usageUnit] = quantity(usage, "Takaran / cup");
+    const [packQty, packUnit] = quantity(pack, 'Ukuran kemasan');
+    const [usageQty, usageUnit] = quantity(usage, 'Takaran / cup');
     const packagingWords =
       /cup|gelas|lid|tutup|sedotan|straw|seal|kemasan|stiker|sticker|plastik|plastic/i;
     menu.items.push({
       id: id(),
       name: cleanItemName,
-      price: parseNumber(price, "Harga beli kemasan"),
+      price: parseNumber(price, 'Harga beli kemasan'),
       packQty,
       packUnit,
       usage: usageQty,
       usageUnit,
-      kind: packagingWords.test(cleanItemName) ? "packaging" : "ingredient",
+      kind: packagingWords.test(cleanItemName) ? 'packaging' : 'ingredient',
       active: true,
     });
   };
@@ -413,36 +449,36 @@ function importTable(text) {
   for (const row of dataRows) {
     if (row.every((cell) => !cell)) continue;
     if (oldFormat || numberedFormat) {
-      const cells = [...row, "", "", "", "", "", "", ""].slice(0, 7);
+      const cells = [...row, '', '', '', '', '', '', ''].slice(0, 7);
       if (
         cells.some((cell) => {
           const c = cell.toLowerCase();
           return (
-            c.includes("total hpp") ||
-            c.includes("harga jual") ||
-            c.includes("estimasi laba") ||
-            c.includes("margin aktual")
+            c.includes('total hpp') ||
+            c.includes('harga jual') ||
+            c.includes('estimasi laba') ||
+            c.includes('margin aktual')
           );
         })
       ) {
         if (
           cells[5] &&
-          cells[5].toLowerCase().includes("harga jual") &&
+          cells[5].toLowerCase().includes('harga jual') &&
           cells[6]
         ) {
           try {
-            const parsedPrice = parseNumber(cells[6], "Harga Jual");
+            const parsedPrice = parseNumber(cells[6], 'Harga Jual');
             if (parsedPrice > 0) menu.pricing.customPrice = parsedPrice;
           } catch {}
         }
         continue;
       }
-      if (cells[5].toLowerCase().includes("operasional")) {
+      if (cells[5].toLowerCase().includes('operasional')) {
         menu.overheads.push({
           id: id(),
-          name: "Operasional / cup",
-          amount: parseNumber(cells[6], "Operasional / cup"),
-          period: "portion",
+          name: 'Operasional / cup',
+          amount: parseNumber(cells[6], 'Operasional / cup'),
+          period: 'portion',
         });
         hasOperationalRow = true;
         continue;
@@ -468,15 +504,15 @@ function importTable(text) {
         addItem(menuName, cells[2], cells[3], cells[4], cells[5]);
       }
     } else {
-      const cells = [...row, "", "", "", "", "", ""].slice(0, 6);
-      if (cells[4].toLowerCase().includes("total hpp")) continue;
+      const cells = [...row, '', '', '', '', '', ''].slice(0, 6);
+      if (cells[4].toLowerCase().includes('total hpp')) continue;
       if (cells[0] && cells[1])
         addItem(cells[0], cells[1], cells[2], cells[3], cells[4]);
     }
   }
 
   if (!menu.items.length)
-    throw new Error("Tabel belum berisi komponen untuk diimpor.");
+    throw new Error('Tabel belum berisi komponen untuk diimpor.');
   menu.overheadsActive = hasOperationalRow;
   menu.marginActive = true;
   return menu;
@@ -484,46 +520,46 @@ function importTable(text) {
 
 export function importRecipe(text) {
   if (text.length > 100000)
-    throw new Error("Teks terlalu panjang. Maksimal 100.000 karakter.");
-  let cleanText = text.replace(/\r/g, "");
+    throw new Error('Teks terlalu panjang. Maksimal 100.000 karakter.');
+  let cleanText = text.replace(/\r/g, '');
   const fence = String.fromCharCode(96).repeat(3);
   if (cleanText.startsWith(fence)) {
-    const firstBreak = cleanText.indexOf("\n");
+    const firstBreak = cleanText.indexOf('\n');
     if (firstBreak >= 0) cleanText = cleanText.slice(firstBreak + 1);
   }
   if (cleanText.endsWith(fence)) cleanText = cleanText.slice(0, -fence.length);
-  if (cleanText.split("\n").some((line) => /^\s*\|.*\|\s*$/.test(line)))
+  if (cleanText.split('\n').some((line) => /^\s*\|.*\|\s*$/.test(line)))
     cleanText = markdownTableToTsv(cleanText);
   const firstLine = cleanText
-    .split("\n")[0]
+    .split('\n')[0]
     .trim()
-    .replace(/^\uFEFF/, "");
+    .replace(/^\uFEFF/, '');
   if (
-    firstLine.toLowerCase().startsWith("no\tmenu\t") ||
-    firstLine.includes("\t")
+    firstLine.toLowerCase().startsWith('no\tmenu\t') ||
+    firstLine.includes('\t')
   )
     return importTable(cleanText);
 
   const lines = cleanText
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
-  if (!["RESEP HPP-KU", "RESEP KOPTI"].includes(lines[0]))
-    throw new Error("Tempel tabel HPP atau format resep HPP-Ku yang lama.");
+  if (!['RESEP HPP-KU', 'RESEP KOPTI'].includes(lines[0]))
+    throw new Error('Tempel tabel HPP atau format resep HPP-Ku yang lama.');
   const menu = freshMenu(),
     settings = {},
     head = {};
-  let section = "head",
+  let section = 'head',
     current = null;
   const sections = new Set();
   for (const line of lines.slice(1)) {
     if (
       [
-        "BAHAN AKTIF",
-        "OPERASIONAL",
-        "OVERHEAD",
-        "PENGATURAN",
-        "RINGKASAN PER PORSI",
+        'BAHAN AKTIF',
+        'OPERASIONAL',
+        'OVERHEAD',
+        'PENGATURAN',
+        'RINGKASAN PER PORSI',
       ].includes(line)
     ) {
       section = line;
@@ -531,104 +567,120 @@ export function importRecipe(text) {
       current = null;
       continue;
     }
-    if (section === "RINGKASAN PER PORSI" || line.startsWith("Tempel teks ini"))
+    if (section === 'RINGKASAN PER PORSI' || line.startsWith('Tempel teks ini'))
       continue;
-    if (line === "(tidak ada)") continue;
+    if (line === '(tidak ada)') continue;
     if (
-      (section === "BAHAN AKTIF" ||
-        section === "OPERASIONAL" ||
-        section === "OVERHEAD") &&
-      line.startsWith("- ")
+      (section === 'BAHAN AKTIF' ||
+        section === 'OPERASIONAL' ||
+        section === 'OVERHEAD') &&
+      line.startsWith('- ')
     ) {
       const importedName = line.slice(2).trim();
       current = {
         id: id(),
-        name: importedName === "(tanpa nama)" ? "" : importedName,
+        name: importedName === '(tanpa nama)' ? '' : importedName,
       };
-      if (section === "BAHAN AKTIF") {
+      if (section === 'BAHAN AKTIF') {
         current.active = true;
         menu.items.push(current);
       } else menu.overheads.push(current);
       continue;
     }
-    const split = line.indexOf(":");
+    const split = line.indexOf(':');
     if (split < 0)
-      throw new Error("Baris tidak dikenali: " + line.slice(0, 70));
+      throw new Error('Baris tidak dikenali: ' + line.slice(0, 70));
     const label = line.slice(0, split).trim(),
       value = line.slice(split + 1).trim();
-    if (section === "head") head[label] = value;
-    else if (section === "PENGATURAN") settings[label] = value;
-    else if (section === "BAHAN AKTIF" && current) {
-      if (label === "Jenis") {
-        if (!["Kemasan", "Bahan"].includes(value))
-          throw new Error("Jenis komponen harus Bahan atau Kemasan.");
-        current.kind = value === "Kemasan" ? "packaging" : "ingredient";
-      } else if (label === "Harga beli")
+    if (section === 'head') head[label] = value;
+    else if (section === 'PENGATURAN') settings[label] = value;
+    else if (section === 'BAHAN AKTIF' && current) {
+      if (label === 'Jenis') {
+        if (!['Kemasan', 'Bahan'].includes(value))
+          throw new Error('Jenis komponen harus Bahan atau Kemasan.');
+        current.kind = value === 'Kemasan' ? 'packaging' : 'ingredient';
+      } else if (label === 'Harga beli')
         current.price = parseNumber(value, label);
-      else if (label === "Isi kemasan")
+      else if (label === 'Isi kemasan')
         [current.packQty, current.packUnit] = quantity(value, label);
-      else if (label === "Pemakaian")
+      else if (label === 'Pemakaian')
         [current.usage, current.usageUnit] = quantity(value, label);
-      else throw new Error("Kolom bahan tidak dikenali: " + label);
+      else throw new Error('Kolom bahan tidak dikenali: ' + label);
     } else if (
-      (section === "OPERASIONAL" || section === "OVERHEAD") &&
+      (section === 'OPERASIONAL' || section === 'OVERHEAD') &&
       current
     ) {
-      if (label === "Nominal") current.amount = parseNumber(value, label);
-      else if (label === "Periode") {
-        if (!["Bulan", "Cup", "Porsi"].includes(value))
-          throw new Error("Periode biaya harus Bulan atau Cup.");
-        current.period = value === "Bulan" ? "month" : "portion";
-      } else throw new Error("Kolom biaya tidak dikenali: " + label);
-    } else throw new Error("Baris tidak pada bagian yang tepat: " + label);
+      if (label === 'Nominal') current.amount = parseNumber(value, label);
+      else if (label === 'Periode') {
+        if (!['Bulan', 'Cup', 'Porsi'].includes(value))
+          throw new Error('Periode biaya harus Bulan atau Cup.');
+        current.period = value === 'Bulan' ? 'month' : 'portion';
+      } else throw new Error('Kolom biaya tidak dikenali: ' + label);
+    } else throw new Error('Baris tidak pada bagian yang tepat: ' + label);
   }
-  if (!head["Nama minuman"] && !head["Nama menu"])
-    throw new Error("Nama minuman tidak ditemukan.");
+  if (!head['Nama minuman'] && !head['Nama menu'])
+    throw new Error('Nama minuman tidak ditemukan.');
   if (
-    !sections.has("BAHAN AKTIF") ||
-    !(sections.has("OPERASIONAL") || sections.has("OVERHEAD")) ||
-    !sections.has("PENGATURAN")
+    !sections.has('BAHAN AKTIF') ||
+    !(sections.has('OPERASIONAL') || sections.has('OVERHEAD')) ||
+    !sections.has('PENGATURAN')
   )
-    throw new Error("Salinan resep belum lengkap.");
+    throw new Error('Salinan resep belum lengkap.');
   for (const item of menu.items)
     if (
-      ["kind", "price", "packQty", "packUnit", "usage", "usageUnit"].some(
+      ['kind', 'price', 'packQty', 'packUnit', 'usage', 'usageUnit'].some(
         (key) => item[key] === undefined
       )
     )
-      throw new Error("Data bahan “" + item.name + "” belum lengkap.");
+      throw new Error('Data bahan “' + item.name + '” belum lengkap.');
   for (const overhead of menu.overheads)
     if (overhead.amount === undefined || !overhead.period)
-      throw new Error("Data biaya “" + overhead.name + "” belum lengkap.");
-  const oldMode = String(settings.Metode ?? "").toLowerCase();
-  const margin = settings.Margin ?? settings["Target keuntungan"];
-  if (margin === undefined) throw new Error("Margin resep tidak ditemukan.");
+      throw new Error('Data biaya “' + overhead.name + '” belum lengkap.');
+  const oldMode = String(settings.Metode ?? '').toLowerCase();
+  const margin = settings.Margin ?? settings['Target keuntungan'];
+  if (margin === undefined) throw new Error('Margin resep tidak ditemukan.');
   const readActive = (key, fallback) => {
     const value = settings[key];
     if (value === undefined) return fallback;
-    if (value === "Ya") return true;
-    if (value === "Tidak") return false;
-    throw new Error(key + ": pilih Ya atau Tidak.");
+    if (value === 'Ya') return true;
+    if (value === 'Tidak') return false;
+    throw new Error(key + ': pilih Ya atau Tidak.');
   };
   menu.name =
-    (head["Nama minuman"] ?? head["Nama menu"]) === "(tanpa nama)"
-      ? ""
-      : (head["Nama minuman"] ?? head["Nama menu"]);
+    (head['Nama minuman'] ?? head['Nama menu']) === '(tanpa nama)'
+      ? ''
+      : (head['Nama minuman'] ?? head['Nama menu']);
   menu.target = parseNumber(
-    settings["Target cup/bulan"] ??
-      settings["Target porsi/bulan"] ??
-      "(belum diisi)",
-    "Target cup/bulan",
+    settings['Target cup/bulan'] ??
+      settings['Target porsi/bulan'] ??
+      '(belum diisi)',
+    'Target cup/bulan',
     true
   );
-  menu.overheadsActive = readActive("Operasional aktif", true);
-  menu.marginActive = readActive("Margin aktif", true);
-  const oldPercent = parseNumber(margin, "Margin");
+  menu.overheadsActive = readActive('Operasional aktif', true);
+  menu.marginActive = readActive('Margin aktif', true);
+  const oldPercent = parseNumber(margin, 'Margin');
   menu.pricing = {
     percent:
-      oldMode === "markup"
+      oldMode === 'markup'
         ? (oldPercent / (100 + oldPercent)) * 100
         : oldPercent,
   };
   return menu;
+}
+
+/** Build an Excel-compatible workbook containing one styled section per saved recipe. */
+export function exportRecipesExcel(recipes) {
+  const sections = recipes
+    .map((recipe) => {
+      const menu = recipe?.data ?? recipe;
+      const title = htmlEscape(
+        recipe?.name || menu?.name || 'Resep tanpa nama'
+      );
+      const source = exportRecipeHtml(menu);
+      const table = source.match(/<table>[\s\S]*<\/table>/i)?.[0] || '';
+      return `<section class="recipe-sheet"><h2>${title}</h2>${table}</section>`;
+    })
+    .join('');
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>body{font-family:Arial,sans-serif;color:#172033}.recipe-sheet{margin:0 0 28px;page-break-after:always}.recipe-sheet:last-child{page-break-after:auto}h2{font-size:16pt;color:#173f73;margin:0 0 10px}table{border-collapse:collapse;width:100%;font-size:10pt}th,td{border:1px solid #d8dee8;padding:5px 8px}th{background:#214e78;color:#fff}</style></head><body>${sections}</body></html>`;
 }

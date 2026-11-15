@@ -1,143 +1,114 @@
-import { Button, Callout } from "@radix-ui/themes";
-import { CopyIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons";
-import { decimal, rupiah } from "../model.js";
-import Overheads from "./Overheads.jsx";
-import Pricing from "./Pricing.jsx";
+import { Copy, Info, TriangleAlert } from 'lucide-react';
+import { decimal, rupiah } from '../model.js';
 
-export default function Summary({
-  menu,
-  update,
-  result,
-  canCopy,
-  onCopy,
-  notify,
-}) {
+export default function Summary({ result, canCopy, onCopy }) {
   const showPrice = result.cost !== null && result.price !== null;
-  const overheadActive = menu.overheadsActive !== false;
-
   return (
-    <aside className="summary-column" aria-labelledby="summary-title">
-      <section className="panel summary-panel" id="summary">
+    <aside
+      className="summary-column"
+      aria-labelledby="summary-title"
+      id="summary"
+    >
+      <section className="panel summary-panel">
+        <div className="panel-heading">
+          <h2 id="summary-title">Ringkasan biaya</h2>
+          <span className="muted-count">1 cup</span>
+        </div>
         <div className="summary-body">
-          {/* 1. TOP: Biaya Operasional */}
-          <div className="summary-section overhead-section">
-            <Overheads
-              menu={menu}
-              update={update}
-              result={result}
-              notify={notify}
-            />
-          </div>
-
-          {/* 2. MIDDLE: Margin Keuntungan */}
-          <div className="summary-section pricing-section">
-            <Pricing menu={menu} update={update} result={result} />
-          </div>
-
-          {/* 3. BOTTOM: Ringkasan / cup (PALING BAWAH) */}
-          <div className="summary-section summary-final-section">
-            <div className="final-summary-header">
-              <h2 id="summary-title" className="summary-main-title">
-                Ringkasan / cup
-              </h2>
+          <dl className="cost-breakdown">
+            <div>
+              <dt>Bahan baku</dt>
+              <dd>{rupiah(result.ingredients)}</dd>
             </div>
-
+            <div>
+              <dt>Kemasan</dt>
+              <dd>{rupiah(result.packaging)}</dd>
+            </div>
+            <div>
+              <dt>Operasional</dt>
+              <dd>{rupiah(result.overhead)}</dd>
+            </div>
+            <div className="total-cost">
+              <dt>HPP / cup</dt>
+              <dd id="grand-total">{rupiah(result.cost)}</dd>
+            </div>
+          </dl>
+          <div className="selling-price">
+            <span>Harga jual / cup</span>
+            <strong id="selling-price">
+              {showPrice ? rupiah(result.price) : '—'}
+            </strong>
+          </div>
+          <div className="batch-summary">
+            <h3>
+              Produksi{' '}
+              <span className="batch-cup-count">{decimal(result.cups)}</span>{' '}
+              cup
+            </h3>
             <dl className="cost-breakdown">
               <div>
-                <dt>Bahan baku</dt>
-                <dd>{rupiah(result.ingredients)}</dd>
+                <dt>Total biaya</dt>
+                <dd>{rupiah(result.batchCost)}</dd>
               </div>
               <div>
-                <dt>Kemasan</dt>
-                <dd>{rupiah(result.packaging)}</dd>
+                <dt>Total penjualan</dt>
+                <dd>{rupiah(result.batchPrice)}</dd>
               </div>
-              <div>
-                <dt>Operasional / cup</dt>
-                <dd>{overheadActive ? rupiah(result.overhead) : "Rp 0"}</dd>
+              <div className="batch-profit">
+                <dt>Estimasi laba</dt>
+                <dd>{rupiah(result.batchProfit)}</dd>
               </div>
-              <div className="total-cost">
-                <dt>Total HPP</dt>
-                <dd id="grand-total">{rupiah(result.cost)}</dd>
+              <div className="batch-margin">
+                <dt>Margin</dt>
+                <dd>
+                  {result.margin === null ? '—' : `${decimal(result.margin)}%`}
+                </dd>
               </div>
             </dl>
-
-            {showPrice ? (
-              <div className="price-results-block">
-                <div className="recommended-price">
-                  <span>Harga jual / cup</span>
-                  <strong id="selling-price">{rupiah(result.price)}</strong>
-                </div>
-                <dl className="cost-breakdown profit-breakdown">
-                  <div className="profit-row">
-                    <dt>Estimasi laba</dt>
-                    <dd id="net-profit">{rupiah(result.profit)}</dd>
-                  </div>
-                  <div>
-                    <dt>Margin aktual</dt>
-                    <dd>{decimal(result.margin)}%</dd>
-                  </div>
-                </dl>
-              </div>
-            ) : (
-              <p className="price-unavailable">
-                Tambahkan bahan untuk menghitung total HPP dan harga jual.
+            {result.cups > 1 && (
+              <p className="batch-per-cup">
+                <span className="batch-per-cup-label">Estimasi laba / cup</span>
+                <strong>{rupiah(result.profit)}</strong>
               </p>
             )}
-
-            {result.lossWarning && (
-              <Callout.Root color="red" className="summary-warning" size="1">
-                <Callout.Icon>
-                  <ExclamationTriangleIcon />
-                </Callout.Icon>
-                <Callout.Text>
-                  Harga jual lebih rendah dari total HPP (rugi).
-                </Callout.Text>
-              </Callout.Root>
-            )}
-            {result.unallocatedMonthly > 0 && (
-              <Callout.Root className="summary-warning" size="1">
-                <Callout.Icon>
-                  <ExclamationTriangleIcon />
-                </Callout.Icon>
-                <Callout.Text>
-                  Isi target cup per bulan untuk alokasi biaya bulanan ke HPP.
-                </Callout.Text>
-              </Callout.Root>
-            )}
-            {result.overheadWarnings.length > 0 && (
-              <Callout.Root color="amber" className="summary-warning" size="1">
-                <Callout.Icon>
-                  <ExclamationTriangleIcon />
-                </Callout.Icon>
-                <Callout.Text>{result.overheadWarnings.join(" ")}</Callout.Text>
-              </Callout.Root>
-            )}
-            {result.errors.length > 0 && (
-              <div className="calculation-errors" role="status">
-                <strong>Periksa bahan</strong>
-                <ul>
-                  {result.errors.map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="save-actions">
-              <Button
-                highContrast
-                size="3"
-                onClick={onCopy}
-                disabled={!canCopy}
-                className="copy-btn-block"
-              >
-                <CopyIcon />
-                Salin tabel HPP
-              </Button>
-            </div>
           </div>
+          {result.lossWarning && (
+            <p className="inline-warning">
+              <TriangleAlert aria-hidden="true" />
+              Harga jual lebih rendah dari HPP.
+            </p>
+          )}
+          {result.overheadWarnings.length > 0 && (
+            <p className="inline-warning">
+              <Info aria-hidden="true" />
+              <span>{result.overheadWarnings.join(' ')}</span>
+            </p>
+          )}
+          {result.errors.length > 0 && (
+            <div className="calculation-errors" role="status">
+              <strong>Lengkapi perhitungan</strong>
+              <ul>
+                {result.errors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <button
+            className="btn btn-outline copy-summary"
+            type="button"
+            onClick={onCopy}
+            disabled={!canCopy}
+          >
+            <Copy aria-hidden="true" />
+            Salin tabel HPP
+          </button>
         </div>
       </section>
+      <p className="summary-note">
+        Estimasi berdasarkan biaya yang kamu masukkan. Pajak dan diskon belum
+        termasuk.
+      </p>
     </aside>
   );
 }

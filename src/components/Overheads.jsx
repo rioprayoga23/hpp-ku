@@ -1,13 +1,16 @@
-import { Button, Switch, TextField } from "@radix-ui/themes";
-import { ChevronDownIcon, PlusIcon, TrashIcon } from "@radix-ui/react-icons";
-import { Field, Choice, NumberInput } from "./Fields.jsx";
-import IconAction from "./IconAction.jsx";
-import { id, rupiah } from "../model.js";
+import {
+  ChevronDown as ChevronDownIcon,
+  Plus as PlusIcon,
+  Trash2 as TrashIcon,
+} from 'lucide-react';
+import { Field, Choice, NumberInput } from './Fields.jsx';
+import IconAction from './IconAction.jsx';
+import { id, rupiah } from '../model.js';
 
-const commonCosts = ["Sewa tempat", "Gaji karyawan", "Listrik & air"];
+const commonCosts = ['Sewa tempat', 'Gaji karyawan', 'Listrik & air'];
 const periods = [
-  { value: "month", label: "Bulan" },
-  { value: "portion", label: "Cup" },
+  { value: 'month', label: 'Bulan' },
+  { value: 'portion', label: 'Cup' },
 ];
 
 export default function Overheads({ menu, update, result, notify }) {
@@ -15,7 +18,7 @@ export default function Overheads({ menu, update, result, notify }) {
   const setRows = (overheads) =>
     update((draft) => ({
       overheads:
-        typeof overheads === "function"
+        typeof overheads === 'function'
           ? overheads(draft.overheads)
           : overheads,
     }));
@@ -25,16 +28,16 @@ export default function Overheads({ menu, update, result, notify }) {
       menu.overheads.map((row, i) => (i === index ? { ...row, ...patch } : row))
     );
 
-  const add = (name = "") =>
+  const add = (name = '') =>
     setRows([
       ...menu.overheads,
-      { id: id(), name, amount: "", period: "month" },
+      { id: id(), name, amount: '', period: 'month' },
     ]);
 
   const remove = (index) => {
     const removed = menu.overheads[index];
     setRows(menu.overheads.filter((_, i) => i !== index));
-    notify("Biaya dihapus.", () =>
+    notify('Biaya dihapus.', () =>
       setRows((current) => {
         const next = [...current];
         next.splice(Math.min(index, next.length), 0, removed);
@@ -46,17 +49,17 @@ export default function Overheads({ menu, update, result, notify }) {
   const monthlyDescription =
     result.monthly > 0 && Number(menu.target) > 0
       ? rupiah(result.monthly) +
-        " ÷ " +
-        Number(menu.target).toLocaleString("id-ID") +
-        " cup"
+        ' ÷ ' +
+        Number(menu.target).toLocaleString('id-ID') +
+        ' cup'
       : result.monthly > 0
-        ? "Belum dialokasikan"
+        ? 'Belum dialokasikan'
         : rupiah(0);
 
   return (
-    <div
+    <section
       className={
-        "summary-subpanel overhead-subpanel" + (active ? "" : " is-inactive")
+        'settings-section overhead-subpanel' + (active ? '' : ' is-inactive')
       }
       id="overheads"
     >
@@ -67,18 +70,21 @@ export default function Overheads({ menu, update, result, notify }) {
             {active
               ? result.overhead > 0
                 ? `${rupiah(result.overhead)} / cup`
-                : "Opsional (Rp 0)"
-              : "Tidak dihitung"}
+                : 'Opsional (Rp 0)'
+              : 'Tidak dihitung'}
           </span>
         </div>
         <label className="section-toggle">
-          <Switch
-            size="1"
+          <input
+            className="toggle toggle-primary"
+            type="checkbox"
             checked={active}
-            onCheckedChange={(overheadsActive) => update({ overheadsActive })}
+            onChange={(event) =>
+              update({ overheadsActive: event.target.checked })
+            }
             aria-label="Aktifkan biaya operasional"
           />
-          <span>{active ? "Aktif" : "Nonaktif"}</span>
+          <span>{active ? 'Aktif' : 'Nonaktif'}</span>
         </label>
       </div>
 
@@ -94,7 +100,7 @@ export default function Overheads({ menu, update, result, notify }) {
                 {(fieldId) => (
                   <NumberInput
                     id={fieldId}
-                    size="2"
+
                     label="Target cup per bulan"
                     value={menu.target}
                     min={1}
@@ -119,17 +125,14 @@ export default function Overheads({ menu, update, result, notify }) {
                   aria-label="Tambah biaya umum"
                 >
                   {commonCosts.map((name) => (
-                    <Button
+                    <button
+                      className="btn btn-outline quick-add-chip"
                       key={name}
-                      className="quick-add-chip"
-                      size="1"
-                      variant="outline"
-                      color="gray"
                       onClick={() => add(name)}
                     >
                       <PlusIcon aria-hidden="true" />
                       {name}
-                    </Button>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -141,8 +144,8 @@ export default function Overheads({ menu, update, result, notify }) {
                   <div className="overhead-item-header">
                     <Field label="Nama biaya">
                       {(fieldId) => (
-                        <TextField.Root
-                          size="2"
+                        <input
+                          className="input input-bordered"
                           id={fieldId}
                           value={row.name}
                           onChange={(event) =>
@@ -154,7 +157,7 @@ export default function Overheads({ menu, update, result, notify }) {
                     </Field>
                     <IconAction
                       className="overhead-delete"
-                      label={"Hapus biaya " + (row.name || index + 1)}
+                      label={'Hapus biaya ' + (row.name || index + 1)}
                       onClick={() => remove(index)}
                     >
                       <TrashIcon aria-hidden="true" />
@@ -166,8 +169,8 @@ export default function Overheads({ menu, update, result, notify }) {
                         <NumberInput
                           id={fieldId}
                           money
-                          size="2"
-                          label={"Nominal " + (row.name || "biaya")}
+
+                          label={'Nominal ' + (row.name || 'biaya')}
                           value={row.amount}
                           onChange={(amount) => change(index, { amount })}
                         />
@@ -177,11 +180,11 @@ export default function Overheads({ menu, update, result, notify }) {
                       {(fieldId) => (
                         <Choice
                           id={fieldId}
-                          size="2"
+
                           value={row.period}
                           onChange={(period) => change(index, { period })}
                           options={periods}
-                          label={"Periode " + (row.name || "biaya")}
+                          label={'Periode ' + (row.name || 'biaya')}
                         />
                       )}
                     </Field>
@@ -191,14 +194,14 @@ export default function Overheads({ menu, update, result, notify }) {
             </div>
 
             <div className="subpanel-footer">
-              <Button size="1" variant="soft" onClick={() => add()}>
+              <button className="btn btn-outline" onClick={() => add()}>
                 <PlusIcon aria-hidden="true" />
                 Tambah biaya
-              </Button>
+              </button>
             </div>
           </div>
         </fieldset>
       </details>
-    </div>
+    </section>
   );
 }
