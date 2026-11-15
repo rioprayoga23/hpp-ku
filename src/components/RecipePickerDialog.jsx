@@ -92,7 +92,10 @@ export default function RecipePickerDialog({
                           : `HPP ${rupiah(recipe.cost)} / cup`}
                     </small>
                   </span>
-                  <span className="recipe-picker-item-action" aria-hidden="true">
+                  <span
+                    className="recipe-picker-item-action"
+                    aria-hidden="true"
+                  >
                     {recipe.current ? <Check /> : 'Pakai'}
                   </span>
                 </button>
@@ -103,7 +106,9 @@ export default function RecipePickerDialog({
           <div className="recipe-picker-empty">
             <Layers2 aria-hidden="true" />
             <strong>Belum ada resep tersimpan</strong>
-            <span>Simpan resep base terlebih dahulu untuk memakainya di sini.</span>
+            <span>
+              Simpan resep base terlebih dahulu untuk memakainya di sini.
+            </span>
           </div>
         )}
 

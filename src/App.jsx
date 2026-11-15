@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Check,
   CheckCheck,
@@ -9,6 +10,7 @@ import {
   Download,
   FolderPlus,
   LoaderCircle,
+  LogOut,
   Minus,
   Moon,
   Plus,
@@ -44,21 +46,18 @@ import {
   exportRecipesExcel,
 } from './recipeTransfer.js';
 import { deleteRecipe, listRecipes, saveRecipe } from './recipesApi.js';
-import { initialRecipes } from './initialRecipes.js';
 import { Toaster, toast } from 'sonner';
 
 const signature = ({ updatedAt, ...menu }) => {
   void updatedAt;
   return JSON.stringify(menu);
 };
-const recipeCategory = (recipe) =>
-  String(recipe?.data?.category ?? '').trim();
+const recipeCategory = (recipe) => String(recipe?.data?.category ?? '').trim();
 
 export default function App() {
-  const [draft, setDraft] = useState(() =>
-    structuredClone(initialRecipes[0].data)
-  );
-  const [recipes, setRecipes] = useState(initialRecipes);
+  const router = useRouter();
+  const [draft, setDraft] = useState(() => freshMenu());
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connectionIssue, setConnectionIssue] = useState('');
@@ -118,6 +117,10 @@ export default function App() {
         ? { action: { label: 'Urungkan', onClick: undo }, duration: 6000 }
         : {}
     );
+  }
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
+    router.replace('/login');
   }
   async function refreshRecipes() {
     setLoading(true);
@@ -378,7 +381,7 @@ export default function App() {
             aria-label="HPP-Ku, kalkulator HPP"
           >
             <span className="brand-name">
-              HPP-Ku<span>.</span>
+              RESEP-YOSHER<span>.</span>
             </span>
           </a>
           <div className="header-actions">
@@ -407,14 +410,23 @@ export default function App() {
             >
               {dark ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Keluar"
+              title="Keluar"
+              onClick={logout}
+            >
+              <LogOut aria-hidden="true" />
+            </Button>
           </div>
         </div>
       </header>
       <main className="workspace" id="calculator">
         <div className="page-intro">
           <div>
-            <h1>Resep & Biaya</h1>
-            <p>Pusing Pengen Mirip Makjay 😔</p>
+            <span className="brand-name">AALITAN WE CE&apos;ES INI MAH 😌</span>
+            <p style={{ marginTop: 0 }}>SING AYA MILIKNA WE NYA ACH.... !!!</p>
           </div>
           <div className="intro-actions">
             <div className="intro-export-actions">
@@ -472,18 +484,11 @@ export default function App() {
         >
           <div className="library-header">
             <div className="library-label">
-              <span>{connectionIssue ? 'Resep awal' : 'Resep tersimpan'}</span>
-              {!loading && <span>{recipes.length}</span>}
+              {/* <span>{connectionIssue ? 'Resep awal' : 'Resep tersimpan'}</span>
+              {!loading && <span>{recipes.length}</span>} */}
             </div>
-            <button
-              className="category-add-trigger"
-              type="button"
-              onClick={() => setCategoryDialogOpen(true)}
-            >
-              <FolderPlus aria-hidden="true" />
-              Kategori
-            </button>
           </div>
+          <div className="library-section-label">Kategori</div>
           <div className="recipe-category-filters" aria-label="Filter kategori">
             <button
               className={`category-filter ${!activeCategoryFilter ? 'is-selected' : ''}`}
@@ -504,6 +509,9 @@ export default function App() {
                 {category}
               </button>
             ))}
+          </div>
+          <div className="library-section-label recipe-list-label">
+            Resep {!loading && <span>{recipes.length}</span>}
           </div>
           <div className="recipe-library-items">
             {loading ? (

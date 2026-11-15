@@ -1,8 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { initialRecipes } from '@/src/initialRecipes.js';
+import { getAuthUser } from '@/src/server/auth';
 
 export const dynamic = 'force-dynamic';
 const COOKIE_NAME = 'hpp_ku_workspace';
@@ -48,6 +47,12 @@ function configError() {
     { status: 503 }
   );
 }
+function unauthorized() {
+  return NextResponse.json(
+    { error: 'Sesi login tidak ditemukan. Silakan masuk kembali.' },
+    { status: 401 }
+  );
+}
 function databaseError(error: unknown) {
   console.error('[recipes] database request failed', error);
   return 'Penyimpanan resep sedang bermasalah. Coba lagi sebentar.';
@@ -60,67 +65,8 @@ function isDuplicate(error: unknown) {
     error.code === '23505'
   );
 }
-function seedId(workspaceId: string, templateId: string) {
-  const hex = createHash('sha256')
-    .update(`${workspaceId}:${templateId}`)
-    .digest('hex')
-    .slice(0, 32)
-    .split('');
-  hex[12] = '4';
-  hex[16] = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
-  const value = hex.join('');
-  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
-}
-
-async function ensureSeed(
-  client: ReturnType<typeof getClient>,
-  workspaceId: string,
-  existing: Array<Record<string, unknown>>
-) {
-  if (!client) return existing;
-  const marker = await client
-    .from('recipe_seed_markers')
-    .select('workspace_id')
-    .eq('workspace_id', workspaceId)
-    .maybeSingle();
-  if (marker.error) throw marker.error;
-  if (marker.data) return existing;
-  if (existing.length) {
-    const marked = await client
-      .from('recipe_seed_markers')
-      .insert({ workspace_id: workspaceId });
-    if (marked.error && marked.error.code !== '23505') throw marked.error;
-    return existing;
-  }
-  const claimed = await client
-    .from('recipe_seed_markers')
-    .insert({ workspace_id: workspaceId })
-    .select('workspace_id')
-    .maybeSingle();
-  if (claimed.error && claimed.error.code === '23505') return existing;
-  if (claimed.error) throw claimed.error;
-  const rows = initialRecipes.map((recipe) => ({
-    id: seedId(workspaceId, recipe.id),
-    workspace_id: workspaceId,
-    name: recipe.name,
-    data: recipe.data,
-    updated_at: recipe.updated_at,
-  }));
-  const seeded = await client
-    .from('recipes')
-    .insert(rows)
-    .select('id,name,data,updated_at');
-  if (seeded.error) {
-    await client
-      .from('recipe_seed_markers')
-      .delete()
-      .eq('workspace_id', workspaceId);
-    throw seeded.error;
-  }
-  return seeded.data ?? [];
-}
-
 export async function GET() {
+  if (!(await getAuthUser())) return unauthorized();
   const client = getClient();
   if (!client) return configError();
   const { id: workspaceId, shouldSet } = await workspace();
@@ -131,9 +77,8 @@ export async function GET() {
       .eq('workspace_id', workspaceId)
       .order('updated_at', { ascending: false });
     if (query.error) throw query.error;
-    const data = await ensureSeed(client, workspaceId, query.data ?? []);
     return withWorkspaceCookie(
-      NextResponse.json({ recipes: data }),
+      NextResponse.json({ recipes: query.data ?? [] }),
       workspaceId,
       shouldSet
     );
@@ -147,6 +92,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await getAuthUser())) return unauthorized();
   const client = getClient();
   if (!client) return configError();
   const body = await request.json().catch(() => null);
@@ -172,9 +118,8 @@ export async function POST(request: Request) {
       .slice(0, 160) || 'Resep tanpa nama';
   const updatedAt = new Date().toISOString();
   try {
-    // A recipe loaded from the seed fallback can still carry its template ID.
     // IDs are global primary keys, so check the current workspace first and
-    // allocate a fresh ID when that template ID belongs to another workspace.
+    // allocate a fresh ID when a client sends an ID from another workspace.
     const found = requestedId
       ? await client
           .from('recipes')
@@ -253,6 +198,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!(await getAuthUser())) return unauthorized();
   const client = getClient();
   if (!client) return configError();
   const recipeId = new URL(request.url).searchParams.get('id');

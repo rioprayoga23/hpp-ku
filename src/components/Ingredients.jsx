@@ -29,7 +29,9 @@ function IngredientRow({ item, index, cups, update, remove }) {
           onClick={() => setExpanded((open) => !open)}
         >
           <span>
-            <strong>{displayName || (isRecipe ? 'Resep tersimpan' : 'Bahan baru')}</strong>
+            <strong>
+              {displayName || (isRecipe ? 'Resep tersimpan' : 'Bahan baru')}
+            </strong>
             <small>
               {!item.active
                 ? 'Tidak dihitung'
@@ -120,7 +122,9 @@ function IngredientRow({ item, index, cups, update, remove }) {
                     className="toggle toggle-primary"
                     type="checkbox"
                     checked={item.active}
-                    onChange={(event) => update({ active: event.target.checked })}
+                    onChange={(event) =>
+                      update({ active: event.target.checked })
+                    }
                     aria-label={`Sertakan ${item.name || 'komponen'}`}
                   />
                   <span>{item.active ? 'Aktif' : 'Nonaktif'}</span>
