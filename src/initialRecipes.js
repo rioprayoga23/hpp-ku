@@ -22,6 +22,7 @@ const item = (
 const base = (id, name, items, customPrice) => ({
   id,
   name,
+  category: '',
   cups: 1,
   items,
   overheads: [],

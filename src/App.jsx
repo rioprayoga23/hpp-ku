@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CupSoda,
   Download,
+  FolderPlus,
   LoaderCircle,
   Minus,
   Moon,
@@ -34,7 +35,8 @@ import Summary from './components/Summary.jsx';
 import Pricing from './components/Pricing.jsx';
 import Overheads from './components/Overheads.jsx';
 import TransferDialog from './components/TransferDialog.jsx';
-import { calculate, freshMenu, normalizeMenu, rupiah } from './model.js';
+import CategoryDialog from './components/CategoryDialog.jsx';
+import { calculate, freshMenu, id, normalizeMenu, rupiah } from './model.js';
 import {
   copiedHppTotal,
   exportRecipe,
@@ -49,6 +51,8 @@ const signature = ({ updatedAt, ...menu }) => {
   void updatedAt;
   return JSON.stringify(menu);
 };
+const recipeCategory = (recipe) =>
+  String(recipe?.data?.category ?? '').trim();
 
 export default function App() {
   const [draft, setDraft] = useState(() =>
@@ -63,6 +67,8 @@ export default function App() {
   const [copyFallback, setCopyFallback] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
   const [dark, setDark] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const touched = useRef(false);
   const result = useMemo(() => calculate(draft), [draft]);
   const dirty = signature(draft) !== savedSignature;
@@ -73,6 +79,30 @@ export default function App() {
     !Number.isInteger(Number(draft.cups)) ||
     Number(draft.cups) < 1 ||
     Number(draft.cups) > 100000;
+  const categories = useMemo(
+    () =>
+      Array.from(new Set(recipes.map(recipeCategory).filter(Boolean))).sort(
+        (a, b) => a.localeCompare(b, 'id')
+      ),
+    [recipes]
+  );
+  const activeCategoryFilter = categories.includes(categoryFilter)
+    ? categoryFilter
+    : '';
+  const visibleRecipes = useMemo(
+    () =>
+      activeCategoryFilter
+        ? recipes.filter(
+            (recipe) => recipeCategory(recipe) === activeCategoryFilter
+          )
+        : recipes,
+    [activeCategoryFilter, recipes]
+  );
+  const categoryOptions = useMemo(() => {
+    const values = new Set(categories);
+    if (draft.category) values.add(draft.category);
+    return Array.from(values).sort((a, b) => a.localeCompare(b, 'id'));
+  }, [categories, draft.category]);
 
   function update(patch) {
     touched.current = true;
@@ -225,6 +255,49 @@ export default function App() {
       });
     else create();
   }
+  function includeSavedRecipe(recipe) {
+    const sourceMenu =
+      recipe.menu ||
+      normalizeMenu({
+        ...(recipe.data || {}),
+        id: recipe.id,
+        updatedAt: recipe.updated_at,
+      });
+    const sourceResult = calculate(sourceMenu);
+    const sourceCost = recipe.cost ?? sourceResult.cost;
+    if (sourceCost === null) {
+      toast.error('Resep ini belum memiliki HPP yang bisa dihitung.');
+      return;
+    }
+    const sourceName = recipe.name || sourceMenu.name || 'Resep tersimpan';
+    update((menu) => ({
+      items: [
+        ...menu.items,
+        {
+          id: id(),
+          name: sourceName,
+          kind: 'recipe',
+          active: true,
+          usage: 1,
+          packQty: 1,
+          packUnit: 'pcs',
+          usageUnit: 'pcs',
+          price: sourceCost,
+          recipeCost: sourceCost,
+          sourceRecipeId: recipe.id,
+          sourceRecipeName: sourceName,
+          sourceRecipeUpdatedAt: recipe.updated_at ?? null,
+        },
+      ],
+    }));
+    notify(`“${sourceName}” ditambahkan ke resep.`);
+  }
+  function applyCategory(category) {
+    const value = String(category ?? '').trim();
+    update({ category: value });
+    setCategoryDialogOpen(false);
+    if (value) notify(`Kategori “${value}” dipilih.`);
+  }
   function confirmDelete(recipe) {
     setPendingAction({
       title: `Hapus “${recipe.name}”?`,
@@ -340,8 +413,8 @@ export default function App() {
       <main className="workspace" id="calculator">
         <div className="page-intro">
           <div>
-            <h1>Resep & biaya</h1>
-            <p>Takaran pas. Harga jual jelas.</p>
+            <h1>Resep & Biaya</h1>
+            <p>Pusing Pengen Mirip Makjay 😔</p>
           </div>
           <div className="intro-actions">
             <div className="intro-export-actions">
@@ -397,15 +470,46 @@ export default function App() {
           className="recipe-library"
           aria-label={connectionIssue ? 'Resep awal' : 'Resep tersimpan'}
         >
-          <div className="library-label">
-            <span>{connectionIssue ? 'Resep awal' : 'Resep tersimpan'}</span>
-            {!loading && <span>{recipes.length}</span>}
+          <div className="library-header">
+            <div className="library-label">
+              <span>{connectionIssue ? 'Resep awal' : 'Resep tersimpan'}</span>
+              {!loading && <span>{recipes.length}</span>}
+            </div>
+            <button
+              className="category-add-trigger"
+              type="button"
+              onClick={() => setCategoryDialogOpen(true)}
+            >
+              <FolderPlus aria-hidden="true" />
+              Kategori
+            </button>
+          </div>
+          <div className="recipe-category-filters" aria-label="Filter kategori">
+            <button
+              className={`category-filter ${!activeCategoryFilter ? 'is-selected' : ''}`}
+              type="button"
+              aria-pressed={!activeCategoryFilter}
+              onClick={() => setCategoryFilter('')}
+            >
+              Semua
+            </button>
+            {categories.map((category) => (
+              <button
+                className={`category-filter ${activeCategoryFilter === category ? 'is-selected' : ''}`}
+                type="button"
+                key={category}
+                aria-pressed={activeCategoryFilter === category}
+                onClick={() => setCategoryFilter(category)}
+              >
+                {category}
+              </button>
+            ))}
           </div>
           <div className="recipe-library-items">
             {loading ? (
               <div className="library-skeleton" aria-label="Memuat resep" />
-            ) : (
-              recipes.map((recipe) => (
+            ) : visibleRecipes.length ? (
+              visibleRecipes.map((recipe) => (
                 <div
                   className={`recipe-tab ${draft.id === recipe.id ? 'is-selected' : ''}`}
                   key={recipe.id}
@@ -430,6 +534,10 @@ export default function App() {
                   </Button>
                 </div>
               ))
+            ) : (
+              <div className="recipe-library-empty">
+                Belum ada resep dalam kategori ini.
+              </div>
             )}
             <Button variant="ghost" className="new-recipe" onClick={newRecipe}>
               <Plus aria-hidden="true" />
@@ -447,6 +555,34 @@ export default function App() {
                 placeholder="Contoh: Kopi Brown Sugar"
                 maxLength={160}
               />
+            )}
+          </Field>
+          <Field label="Kategori">
+            {(fieldId) => (
+              <div className="category-input-row">
+                <select
+                  id={fieldId}
+                  className="select select-bordered"
+                  value={draft.category || ''}
+                  onChange={(event) => update({ category: event.target.value })}
+                  aria-label="Kategori resep"
+                >
+                  <option value="">Tanpa kategori</option>
+                  {categoryOptions.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="btn btn-ghost category-inline-add"
+                  type="button"
+                  aria-label="Tambah kategori baru"
+                  onClick={() => setCategoryDialogOpen(true)}
+                >
+                  <FolderPlus aria-hidden="true" />
+                </button>
+              </div>
             )}
           </Field>
           <Field
@@ -494,6 +630,9 @@ export default function App() {
             )}
           </Field>
           <div className="batch-help">
+            <span className="batch-help-icon" aria-hidden="true">
+              <CupSoda />
+            </span>
             <div className="batch-help-copy">
               <p>
                 Resep disusun untuk <strong>1 cup</strong>.
@@ -507,6 +646,9 @@ export default function App() {
             <Ingredients
               items={draft.items}
               cups={result.cups}
+              savedRecipes={recipes}
+              currentRecipeId={draft.id}
+              onIncludeRecipe={includeSavedRecipe}
               onChange={(items) =>
                 update((menu) => ({
                   items:
@@ -553,6 +695,13 @@ export default function App() {
           notify('Resep berhasil diimport.');
         }}
         copyFallback={copyFallback}
+      />
+      <CategoryDialog
+        key={categoryDialogOpen ? 'category-open' : 'category-closed'}
+        open={categoryDialogOpen}
+        categories={categories}
+        onClose={() => setCategoryDialogOpen(false)}
+        onCreate={applyCategory}
       />
       <AlertDialog
         open={Boolean(pendingAction)}

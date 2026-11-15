@@ -67,6 +67,7 @@ export function freshMenu(example = false) {
   return {
     id: id(),
     name: example ? 'Kopi Brown Sugar' : '',
+    category: '',
     cups: 1,
     items,
     overheads: [],
@@ -105,6 +106,7 @@ export function normalizeMenu(raw = {}) {
     ...base,
     id: typeof raw.id === 'string' ? raw.id : base.id,
     name: String(raw.name ?? raw.recipe ?? ''),
+    category: String(raw.category ?? ''),
     cups: valid(normalizedCups, 1, 100000) ? normalizedCups : 1,
     items: (Array.isArray(raw.items) ? raw.items : []).map((item) => ({
       id: typeof item.id === 'string' ? item.id : id(),
@@ -122,7 +124,17 @@ export function normalizeMenu(raw = {}) {
         : units.includes(item.unit)
           ? item.unit
           : 'ml',
-      kind: item.kind === 'packaging' ? 'packaging' : 'ingredient',
+      kind:
+        item.kind === 'recipe'
+          ? 'recipe'
+          : item.kind === 'packaging'
+            ? 'packaging'
+            : 'ingredient',
+      sourceRecipeId:
+        typeof item.sourceRecipeId === 'string' ? item.sourceRecipeId : null,
+      sourceRecipeName: String(item.sourceRecipeName ?? item.name ?? ''),
+      sourceRecipeUpdatedAt: item.sourceRecipeUpdatedAt ?? null,
+      recipeCost: item.recipeCost ?? null,
       active: item.active !== false,
     })),
     overheads: (Array.isArray(raw.overheads) ? raw.overheads : []).map((o) => ({
@@ -149,6 +161,22 @@ export function normalizeMenu(raw = {}) {
 
 export function ingredientCost(item) {
   if (!item.active) return { cost: 0, error: null };
+  if (item.kind === 'recipe') {
+    if (!valid(item.recipeCost, 0))
+      return {
+        cost: null,
+        error: 'HPP resep sumber belum tersedia.',
+      };
+    if (!valid(item.usage, Number.MIN_VALUE))
+      return {
+        cost: null,
+        error: 'Isi pemakaian resep lebih dari 0.',
+      };
+    const cost = Number(item.recipeCost) * Number(item.usage);
+    return Number.isFinite(cost) && cost <= Number.MAX_SAFE_INTEGER
+      ? { cost, error: null }
+      : { cost: null, error: 'Angka terlalu besar untuk dihitung.' };
+  }
   if (families[item.packUnit] !== families[item.usageUnit])
     return {
       cost: null,

@@ -26,5 +26,6 @@ Resep dikelompokkan berdasarkan cookie workspace anonim agar beberapa menu dapat
 - Menyimpan, membuka, dan menghapus resep melalui Supabase.
 - Seed awal Longblack, BerryCano, dan PeachCano hanya sekali per workspace.
 - Jumlah cup default 1; bahan, kemasan, dan operasional dikalikan sesuai produksi.
+- Resep tersimpan dapat dipakai sebagai komponen base di resep lain; pemakaian base diatur per cup.
 - HPP dan harga jual selalu ditampilkan per cup, dengan ringkasan biaya, penjualan, dan laba total produksi.
 - Salin tabel HPP ke spreadsheet dan ekspor seluruh resep tersimpan ke satu file Excel dengan bagian terpisah untuk tiap resep.
