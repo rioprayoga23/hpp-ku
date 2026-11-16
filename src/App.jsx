@@ -290,6 +290,7 @@ export default function App() {
           sourceRecipeId: recipe.id,
           sourceRecipeName: sourceName,
           sourceRecipeUpdatedAt: recipe.updated_at ?? null,
+          sourceRecipeData: structuredClone(recipe.data || sourceMenu),
         },
       ],
     }));
@@ -337,14 +338,14 @@ export default function App() {
   }
   async function copyRecipe() {
     if (!canCopy) return;
-    const text = exportRecipe(draft);
+    const text = exportRecipe(draft, recipes);
     try {
       if (navigator.clipboard?.write && window.ClipboardItem) {
         try {
           await navigator.clipboard.write([
             new window.ClipboardItem({
               'text/plain': new Blob([text], { type: 'text/plain' }),
-              'text/html': new Blob([exportRecipeHtml(draft)], {
+              'text/html': new Blob([exportRecipeHtml(draft, recipes)], {
                 type: 'text/html',
               }),
             }),

@@ -33,24 +33,124 @@ const excelText = (value) => {
   return /^[=+@-]/.test(text) ? "'" + text : text;
 };
 
-function copiedRows(menu) {
+function isObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function recipeSource(item, recipes) {
+  if (isObject(item.sourceRecipeData)) return item.sourceRecipeData;
+  const source = (recipes || []).find(
+    (recipe) => recipe?.id && recipe.id === item.sourceRecipeId
+  );
+  return isObject(source?.data) ? source.data : null;
+}
+
+function sourceLabel(item, source) {
+  return clean(
+    item.sourceRecipeName || source?.name || item.name || 'Resep tersimpan'
+  );
+}
+
+function appendRecipeDetails(rows, item, recipes, stack, multiplier, level) {
+  const source = recipeSource(item, recipes);
+  if (!source || !Array.isArray(source.items)) return;
+  const sourceKey = String(
+    item.sourceRecipeId || source.id || source.name || 'source'
+  );
+  if (stack.has(sourceKey)) {
+    rows.push({
+      isDetailHeading: true,
+      cells: [
+        '',
+        '',
+        `${'  '.repeat(level)}Detail resep berulang: ${sourceLabel(item, source)}`,
+        '',
+        '',
+        '',
+        '',
+      ],
+    });
+    return;
+  }
+  const nextStack = new Set(stack);
+  nextStack.add(sourceKey);
+  const label = sourceLabel(item, source);
+  rows.push({
+    isDetailHeading: true,
+    cells: [
+      '',
+      '',
+      `${'  '.repeat(level)}Detail resep: ${label}`,
+      '',
+      '',
+      '',
+      '',
+    ],
+  });
+  source.items
+    .filter((child) => child.active)
+    .forEach((child) => {
+      const childCost = ingredientCost(child).cost;
+      const scaledUsage = Number(child.usage) * multiplier;
+      const scaledCost = childCost == null ? null : childCost * multiplier;
+      rows.push({
+        isItem: true,
+        isDetail: true,
+        detailLevel: level,
+        cells: [
+          '',
+          '',
+          `${'  '.repeat(level + 1)}${excelText(child.name || '(tanpa nama)')}`,
+          rawNumber(child.price),
+          quantityNumber(child.packQty) + ' ' + child.packUnit,
+          quantityNumber(scaledUsage) + ' ' + child.usageUnit,
+          scaledCost == null ? '' : rawNumber(scaledCost),
+        ],
+      });
+      if (child.kind === 'recipe')
+        appendRecipeDetails(
+          rows,
+          child,
+          recipes,
+          nextStack,
+          multiplier * Number(child.usage || 0),
+          level + 1
+        );
+    });
+}
+
+function copiedRows(menu, recipes = []) {
   const result = calculate(menu);
   const activeItems = menu.items.filter((item) => item.active);
-  const rows = activeItems.map((item, index) => ({
-    index,
-    isItem: true,
-    cells: [
-      '1',
-      excelText(menu.name || '(tanpa nama)'),
-      excelText(item.name || '(tanpa nama)'),
-      rawNumber(item.price),
-      quantityNumber(item.packQty) + ' ' + item.packUnit,
-      quantityNumber(item.usage) + ' ' + item.usageUnit,
-      rawNumber(ingredientCost(item).cost),
-    ],
-  }));
+  const rows = [];
+  activeItems.forEach((item, index) => {
+    rows.push({
+      index,
+      isItem: true,
+      cells: [
+        '1',
+        excelText(menu.name || '(tanpa nama)'),
+        excelText(item.name || '(tanpa nama)'),
+        rawNumber(item.price),
+        quantityNumber(item.packQty) + ' ' + item.packUnit,
+        quantityNumber(item.usage) + ' ' + item.usageUnit,
+        rawNumber(ingredientCost(item).cost),
+      ],
+    });
+    if (item.kind === 'recipe')
+      appendRecipeDetails(
+        rows,
+        item,
+        recipes,
+        new Set(),
+        Number(item.usage) || 0,
+        0
+      );
+  });
 
-  const itemsTotal = rows.reduce((sum, row) => sum + Number(row.cells[6]), 0);
+  const itemsTotal = rows
+    .filter((row) => row.isItem && !row.isDetail)
+    .reduce((sum, row) => sum + Number(row.cells[6]), 0);
   const hasOverhead = menu.overheadsActive !== false && result.overhead > 0;
 
   if (hasOverhead) {
@@ -151,11 +251,11 @@ export function copiedHppTotal(menu) {
   const result = calculate(menu);
   if (result.cost !== null) return result.cost;
   return copiedRows(menu)
-    .filter((row) => row.isItem)
+    .filter((row) => row.isItem && !row.isDetail)
     .reduce((sum, row) => sum + Number(row.cells[6]), 0);
 }
 
-export function exportRecipe(menu) {
+export function exportRecipe(menu, recipes = []) {
   const header = [
     'No',
     'Menu',
@@ -165,7 +265,7 @@ export function exportRecipe(menu) {
     'Takaran / Cup',
     'HPP / Porsi',
   ];
-  const rows = copiedRows(menu).map((row) =>
+  const rows = copiedRows(menu, recipes).map((row) =>
     row.cells
       .map((value, index) => {
         if (value === '') return value;
@@ -182,9 +282,10 @@ export function exportRecipe(menu) {
   return [header.join('\t'), ...rows].join('\n');
 }
 
-export function exportRecipeHtml(menu) {
-  const rows = copiedRows(menu);
-  const itemCount = rows.filter((row) => row.isItem).length;
+export function exportRecipeHtml(menu, recipes = []) {
+  const rows = copiedRows(menu, recipes);
+  const itemCount = rows.filter((row) => row.isItem && !row.isDetail).length;
+  const hasDetails = rows.some((row) => row.isDetail || row.isDetailHeading);
   const header = [
     'No',
     'Menu',
@@ -209,12 +310,39 @@ export function exportRecipeHtml(menu) {
   let firstSummary = true;
   const htmlRows = rows
     .map((row) => {
+      if (row.isDetailHeading) {
+        return (
+          '<tr><td colspan="7" style="border:1px solid #d8dee8;padding:6px 8px;background:#f3f6fa;color:#173f73;font-weight:bold;text-align:left">' +
+          htmlEscape(row.cells[2]) +
+          '</td></tr>'
+        );
+      }
       if (row.isItem) {
         return (
           '<tr>' +
           row.cells
             .map((value, index) => {
               if (index < 2) {
+                if (row.isDetail) {
+                  return '<td style="border:1px solid #d8dee8;padding:5px 8px;vertical-align:middle"></td>';
+                }
+                if (hasDetails) {
+                  const style = [
+                    'border:1px solid #d8dee8',
+                    'padding:5px 8px',
+                    'vertical-align:middle',
+                    index === 0 ? 'text-align:center' : 'text-align:left',
+                  ].join(';');
+                  return (
+                    '<td valign="middle" align="' +
+                    (index === 0 ? 'center' : 'left') +
+                    '" style="' +
+                    style +
+                    '">' +
+                    htmlEscape(value) +
+                    '</td>'
+                  );
+                }
                 if (row.index > 0) return '';
                 const style = [
                   'border:1px solid #d8dee8',
@@ -242,6 +370,7 @@ export function exportRecipeHtml(menu) {
                 'padding:5px 8px',
                 'vertical-align:middle',
                 numeric ? 'text-align:right' : 'text-align:left',
+                row.isDetail ? 'font-style:italic;color:#4b5563' : '',
                 numeric ? 'mso-number-format:"\\#\\,\\#\\#0"' : '',
               ]
                 .filter(Boolean)
@@ -415,6 +544,7 @@ function importTable(text) {
   menu.name = '';
   let hasOperationalRow = false;
   let previousMenu = '';
+  let inDetailSection = false;
 
   const addItem = (menuName, itemName, price, pack, usage) => {
     const cleanMenuName = menuName.startsWith("'")
@@ -450,6 +580,15 @@ function importTable(text) {
     if (row.every((cell) => !cell)) continue;
     if (oldFormat || numberedFormat) {
       const cells = [...row, '', '', '', '', '', '', ''].slice(0, 7);
+      if (cells[0] || cells[1]) inDetailSection = false;
+      if (cells[2].toLowerCase().startsWith('detail resep')) {
+        inDetailSection = true;
+        continue;
+      }
+      // Detail rows are explanatory output for nested saved recipes. They
+      // should not become new top-level ingredients when the table is pasted
+      // back into the recipe editor.
+      if (inDetailSection && !cells[0] && !cells[1] && cells[2]) continue;
       if (
         cells.some((cell) => {
           const c = cell.toLowerCase();
@@ -669,18 +808,67 @@ export function importRecipe(text) {
   return menu;
 }
 
-/** Build an Excel-compatible workbook containing one styled section per saved recipe. */
+function sheetName(category, used) {
+  const base =
+    clean(category || 'Tanpa kategori')
+      .replace(/[\\/:?*\[\]]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 31) || 'Tanpa kategori';
+  let name = base;
+  let suffix = 2;
+  while (used.has(name.toLowerCase())) {
+    const tail = ` (${suffix++})`;
+    name = base.slice(0, 31 - tail.length) + tail;
+  }
+  used.add(name.toLowerCase());
+  return name;
+}
+
+/** Build an Excel-compatible workbook with one worksheet per recipe category. */
 export function exportRecipesExcel(recipes) {
-  const sections = recipes
-    .map((recipe) => {
-      const menu = recipe?.data ?? recipe;
-      const title = htmlEscape(
-        recipe?.name || menu?.name || 'Resep tanpa nama'
-      );
-      const source = exportRecipeHtml(menu);
-      const table = source.match(/<table>[\s\S]*<\/table>/i)?.[0] || '';
-      return `<section class="recipe-sheet"><h2>${title}</h2>${table}</section>`;
-    })
-    .join('');
-  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>body{font-family:Arial,sans-serif;color:#172033}.recipe-sheet{margin:0 0 28px;page-break-after:always}.recipe-sheet:last-child{page-break-after:auto}h2{font-size:16pt;color:#173f73;margin:0 0 10px}table{border-collapse:collapse;width:100%;font-size:10pt}th,td{border:1px solid #d8dee8;padding:5px 8px}th{background:#214e78;color:#fff}</style></head><body>${sections}</body></html>`;
+  const groups = new Map();
+  for (const recipe of recipes || []) {
+    const menu = recipe?.data ?? recipe;
+    const category =
+      clean(menu?.category || 'Tanpa kategori') || 'Tanpa kategori';
+    if (!groups.has(category)) groups.set(category, []);
+    groups.get(category).push(recipe);
+  }
+
+  const usedNames = new Set();
+  const sheets = Array.from(groups.entries()).map(
+    ([category, categoryRecipes], index) => {
+      const name = sheetName(category, usedNames);
+      const id = `recipe-category-${index}`;
+      const sections = categoryRecipes
+        .map((recipe) => {
+          const menu = recipe?.data ?? recipe;
+          const title = htmlEscape(
+            recipe?.name || menu?.name || 'Resep tanpa nama'
+          );
+          const source = exportRecipeHtml(menu, recipes);
+          const table = source.match(/<table>[\s\S]*<\/table>/i)?.[0] || '';
+          return `<section class="recipe-sheet"><h2>${title}</h2>${table}</section>`;
+        })
+        .join('');
+      return {
+        id,
+        name,
+        body: `<div id="${id}" class="category-sheet"><h1>Kategori: ${htmlEscape(category)}</h1>${sections}</div>`,
+      };
+    }
+  );
+
+  const workbookXml =
+    '<xml><x:ExcelWorkbook><x:ExcelWorksheets>' +
+    sheets
+      .map(
+        (sheet) =>
+          `<x:ExcelWorksheet><x:Name>${htmlEscape(sheet.name)}</x:Name><x:WorksheetSource HRef="#${sheet.id}"/><x:WorksheetOptions><x:Selected/><x:FreezePanes/><x:ProtectContents>False</x:ProtectContents></x:WorksheetOptions></x:ExcelWorksheet>`
+      )
+      .join('') +
+    '</x:ExcelWorksheets></x:ExcelWorkbook></xml>';
+
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">${workbookXml}<style>body{font-family:Arial,sans-serif;color:#172033}.category-sheet{margin:0 0 28px;page-break-after:always}.category-sheet:last-child{page-break-after:auto}h1{font-size:18pt;color:#173f73;margin:0 0 16px}h2{font-size:15pt;color:#173f73;margin:0 0 10px}table{border-collapse:collapse;width:100%;font-size:10pt}th,td{border:1px solid #d8dee8;padding:5px 8px}th{background:#214e78;color:#fff}</style></head><body>${sheets.map((sheet) => sheet.body).join('')}</body></html>`;
 }

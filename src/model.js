@@ -134,6 +134,12 @@ export function normalizeMenu(raw = {}) {
         typeof item.sourceRecipeId === 'string' ? item.sourceRecipeId : null,
       sourceRecipeName: String(item.sourceRecipeName ?? item.name ?? ''),
       sourceRecipeUpdatedAt: item.sourceRecipeUpdatedAt ?? null,
+      sourceRecipeData:
+        item.sourceRecipeData &&
+        typeof item.sourceRecipeData === 'object' &&
+        !Array.isArray(item.sourceRecipeData)
+          ? item.sourceRecipeData
+          : null,
       recipeCost: item.recipeCost ?? null,
       active: item.active !== false,
     })),

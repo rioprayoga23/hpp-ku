@@ -31,5 +31,6 @@ Login memakai satu akun aplikasi yang disimpan di tabel `app_users`; sesi disimp
 - Resep baru dimulai kosong; tidak ada seed resep bawaan.
 - Jumlah cup default 1; bahan, kemasan, dan operasional dikalikan sesuai produksi.
 - Resep tersimpan dapat dipakai sebagai komponen base di resep lain; pemakaian base diatur per cup.
+- Salinan resep merinci bahan dari resep base yang dipakai, termasuk resep bertingkat.
 - HPP dan harga jual selalu ditampilkan per cup, dengan ringkasan biaya, penjualan, dan laba total produksi.
-- Salin tabel HPP ke spreadsheet dan ekspor seluruh resep tersimpan ke satu file Excel dengan bagian terpisah untuk tiap resep.
+- Salin tabel HPP ke spreadsheet dan ekspor seluruh resep tersimpan ke file Excel dengan satu sheet per kategori.
