@@ -123,13 +123,14 @@ function copiedRows(menu, recipes = []) {
   const result = calculate(menu);
   const activeItems = menu.items.filter((item) => item.active);
   const rows = [];
+  const detailRows = [];
   activeItems.forEach((item, index) => {
     rows.push({
       index,
       isItem: true,
       cells: [
-        '1',
-        excelText(menu.name || '(tanpa nama)'),
+        index === 0 ? '1' : '',
+        index === 0 ? excelText(menu.name || '(tanpa nama)') : '',
         excelText(item.name || '(tanpa nama)'),
         rawNumber(item.price),
         quantityNumber(item.packQty) + ' ' + item.packUnit,
@@ -139,7 +140,7 @@ function copiedRows(menu, recipes = []) {
     });
     if (item.kind === 'recipe')
       appendRecipeDetails(
-        rows,
+        detailRows,
         item,
         recipes,
         new Set(),
@@ -147,6 +148,7 @@ function copiedRows(menu, recipes = []) {
         0
       );
   });
+  rows.push(...detailRows);
 
   const itemsTotal = rows
     .filter((row) => row.isItem && !row.isDetail)
@@ -285,7 +287,6 @@ export function exportRecipe(menu, recipes = []) {
 export function exportRecipeHtml(menu, recipes = []) {
   const rows = copiedRows(menu, recipes);
   const itemCount = rows.filter((row) => row.isItem && !row.isDetail).length;
-  const hasDetails = rows.some((row) => row.isDetail || row.isDetailHeading);
   const header = [
     'No',
     'Menu',
@@ -325,23 +326,6 @@ export function exportRecipeHtml(menu, recipes = []) {
               if (index < 2) {
                 if (row.isDetail) {
                   return '<td style="border:1px solid #d8dee8;padding:5px 8px;vertical-align:middle"></td>';
-                }
-                if (hasDetails) {
-                  const style = [
-                    'border:1px solid #d8dee8',
-                    'padding:5px 8px',
-                    'vertical-align:middle',
-                    index === 0 ? 'text-align:center' : 'text-align:left',
-                  ].join(';');
-                  return (
-                    '<td valign="middle" align="' +
-                    (index === 0 ? 'center' : 'left') +
-                    '" style="' +
-                    style +
-                    '">' +
-                    htmlEscape(value) +
-                    '</td>'
-                  );
                 }
                 if (row.index > 0) return '';
                 const style = [

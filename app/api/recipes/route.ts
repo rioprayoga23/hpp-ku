@@ -1,10 +1,10 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/src/server/auth';
 
 export const dynamic = 'force-dynamic';
-const COOKIE_NAME = 'hpp_ku_workspace';
+const FALLBACK_USERS_WORKSPACE = '__hpp_ku_auth_users__';
+const FALLBACK_SESSIONS_WORKSPACE = '__hpp_ku_auth_sessions__';
 
 function getClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -14,28 +14,6 @@ function getClient() {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-}
-
-async function workspace() {
-  const store = await cookies();
-  const existing = store.get(COOKIE_NAME)?.value;
-  return { id: existing || crypto.randomUUID(), shouldSet: !existing };
-}
-
-function withWorkspaceCookie(
-  response: NextResponse,
-  workspaceId: string,
-  shouldSet: boolean
-) {
-  if (shouldSet)
-    response.cookies.set(COOKIE_NAME, workspaceId, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 365 * 2,
-      path: '/',
-    });
-  return response;
 }
 
 function configError() {
@@ -66,33 +44,30 @@ function isDuplicate(error: unknown) {
   );
 }
 export async function GET() {
-  if (!(await getAuthUser())) return unauthorized();
+  const user = await getAuthUser();
+  if (!user) return unauthorized();
   const client = getClient();
   if (!client) return configError();
-  const { id: workspaceId, shouldSet } = await workspace();
   try {
+    // The app has one configured account. Read all recipe rows so recipes
+    // saved before the cross-device fix (under a device cookie workspace)
+    // remain visible on every device after login.
     const query = await client
       .from('recipes')
       .select('id,name,data,updated_at')
-      .eq('workspace_id', workspaceId)
+      .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+      .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE)
       .order('updated_at', { ascending: false });
     if (query.error) throw query.error;
-    return withWorkspaceCookie(
-      NextResponse.json({ recipes: query.data ?? [] }),
-      workspaceId,
-      shouldSet
-    );
+    return NextResponse.json({ recipes: query.data ?? [] });
   } catch (error) {
-    return withWorkspaceCookie(
-      NextResponse.json({ error: databaseError(error) }, { status: 500 }),
-      workspaceId,
-      shouldSet
-    );
+    return NextResponse.json({ error: databaseError(error) }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  if (!(await getAuthUser())) return unauthorized();
+  const user = await getAuthUser();
+  if (!user) return unauthorized();
   const client = getClient();
   if (!client) return configError();
   const body = await request.json().catch(() => null);
@@ -107,7 +82,9 @@ export async function POST(request: Request) {
       { error: 'Data resep terlalu besar.' },
       { status: 413 }
     );
-  const { id: workspaceId, shouldSet } = await workspace();
+  // Use the authenticated Supabase-backed account as the shared workspace.
+  // This value is stable across browsers and devices.
+  const workspaceId = user.id;
   const requestedId =
     typeof body.id === 'string' && /^[0-9a-f-]{36}$/i.test(body.id)
       ? body.id
@@ -118,14 +95,16 @@ export async function POST(request: Request) {
       .slice(0, 160) || 'Resep tanpa nama';
   const updatedAt = new Date().toISOString();
   try {
-    // IDs are global primary keys, so check the current workspace first and
-    // allocate a fresh ID when a client sends an ID from another workspace.
+    // IDs are global primary keys. Reuse an existing recipe ID when it is
+    // already present in the shared database, regardless of its old device
+    // workspace, and allocate a fresh ID only for a true collision.
     const found = requestedId
       ? await client
           .from('recipes')
           .select('id')
           .eq('id', requestedId)
-          .eq('workspace_id', workspaceId)
+          .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+          .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE)
           .maybeSingle()
       : { data: null, error: null };
     if (found.error) throw found.error;
@@ -134,15 +113,12 @@ export async function POST(request: Request) {
         .from('recipes')
         .update({ name, data: body.data, updated_at: updatedAt })
         .eq('id', requestedId)
-        .eq('workspace_id', workspaceId)
+        .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+        .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE)
         .select('id,name,data,updated_at')
         .single();
       if (result.error) throw result.error;
-      return withWorkspaceCookie(
-        NextResponse.json({ recipe: result.data }),
-        workspaceId,
-        shouldSet
-      );
+      return NextResponse.json({ recipe: result.data });
     }
 
     let recipeId = requestedId || crypto.randomUUID();
@@ -151,6 +127,8 @@ export async function POST(request: Request) {
         .from('recipes')
         .select('id')
         .eq('id', requestedId)
+        .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+        .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE)
         .maybeSingle();
       if (claimed.error) throw claimed.error;
       if (claimed.data) recipeId = crypto.randomUUID();
@@ -183,17 +161,9 @@ export async function POST(request: Request) {
         .single();
     }
     if (result.error) throw result.error;
-    return withWorkspaceCookie(
-      NextResponse.json({ recipe: result.data }),
-      workspaceId,
-      shouldSet
-    );
+    return NextResponse.json({ recipe: result.data });
   } catch (error) {
-    return withWorkspaceCookie(
-      NextResponse.json({ error: databaseError(error) }, { status: 500 }),
-      workspaceId,
-      shouldSet
-    );
+    return NextResponse.json({ error: databaseError(error) }, { status: 500 });
   }
 }
 
@@ -207,24 +177,16 @@ export async function DELETE(request: Request) {
       { error: 'ID resep tidak valid.' },
       { status: 400 }
     );
-  const { id: workspaceId, shouldSet } = await workspace();
   try {
     const result = await client
       .from('recipes')
       .delete()
       .eq('id', recipeId)
-      .eq('workspace_id', workspaceId);
+      .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+      .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE);
     if (result.error) throw result.error;
-    return withWorkspaceCookie(
-      NextResponse.json({ ok: true }),
-      workspaceId,
-      shouldSet
-    );
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    return withWorkspaceCookie(
-      NextResponse.json({ error: databaseError(error) }, { status: 500 }),
-      workspaceId,
-      shouldSet
-    );
+    return NextResponse.json({ error: databaseError(error) }, { status: 500 });
   }
 }
