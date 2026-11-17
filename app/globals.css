@@ -868,25 +868,103 @@ h3 {
 .recipe-name-field {
   gap: 8px;
 }
+.recipe-name-field .input:disabled {
+  opacity: 1;
+  color: var(--ink);
+  background: var(--color-base-200);
+  border-color: var(--line);
+  cursor: default;
+}
+.recipe-main-fields {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+}
 .recipe-active-toggle {
   justify-self: start;
 }
-.recipe-source-cost {
+.recipe-details {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.recipe-details-toggle {
   display: flex;
-  min-height: 44px;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-  padding-block: 3px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
 }
-.recipe-source-cost span {
+.recipe-details-toggle > svg {
+  flex: 0 0 auto;
+  width: 16px;
   color: var(--muted);
-  font-size: 0.7rem;
+  transition: transform 0.18s var(--curve);
 }
-.recipe-source-cost strong {
-  color: var(--color-secondary);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
+.recipe-details.is-open .recipe-details-toggle > svg {
+  transform: rotate(180deg);
+}
+.recipe-details-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.recipe-details-heading small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-details-list,
+.recipe-detail-nested {
+  display: grid;
+  gap: 8px;
+}
+.recipe-detail-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--soft) 55%, var(--color-base-100));
+}
+.recipe-detail-row .input:disabled,
+.recipe-detail-row .select:disabled {
+  opacity: 1;
+  color: var(--ink);
+  background: var(--color-base-200);
+  border-color: var(--line);
+  cursor: default;
+}
+.recipe-detail-row .toggle:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+.recipe-detail-cost {
+  min-height: 44px;
+}
+.recipe-detail-nested {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 2px solid
+    color-mix(in oklch, var(--color-primary) 25%, var(--line));
 }
 .ingredient-options {
   display: grid;
@@ -1708,9 +1786,35 @@ h3 {
   .recipe-name-field {
     grid-column: span 2;
   }
-  .recipe-source-cost,
-  .recipe-usage-field {
-    align-self: start;
+  .recipe-main-fields {
+    display: contents;
+  }
+  .ingredient-row.is-recipe > .ingredient-fields {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) minmax(125px, 130px);
+    gap: 12px;
+  }
+  .ingredient-row.is-recipe > .ingredient-fields > .recipe-main-fields >
+    .recipe-name-field {
+    grid-column: 1 / 3;
+    width: 100%;
+    min-width: 0;
+  }
+  .recipe-detail-row {
+    grid-template-columns:
+      minmax(180px, 1.3fr) minmax(130px, 0.8fr) minmax(180px, 1fr)
+      minmax(180px, 1fr) minmax(125px, 130px);
+    align-items: start;
+  }
+  .recipe-detail-row .ingredient-cost-field {
+    align-self: stretch;
+    min-height: 44px;
+    padding-left: 12px;
+    border-left: 1px solid var(--line);
+  }
+  .recipe-detail-nested {
+    margin-left: 16px;
+    padding-left: 14px;
   }
   .ingredient-name-field .field {
     min-width: 0;
@@ -1727,6 +1831,19 @@ h3 {
     gap: 8px;
     padding-left: 12px;
     border-left: 1px solid var(--line);
+  }
+  .ingredient-row.is-recipe > .ingredient-fields > .ingredient-cost-field {
+    grid-column: 3;
+    grid-row: 1;
+    width: 100%;
+  }
+  .ingredient-row.is-recipe > .ingredient-fields > .recipe-details {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .ingredient-row.is-recipe > .ingredient-fields > .ingredient-batch-note,
+  .ingredient-row.is-recipe > .ingredient-fields > .ingredient-error {
+    grid-row: 3;
   }
   .desktop-cost-label {
     display: none;

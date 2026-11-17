@@ -213,6 +213,10 @@ export default function App() {
       );
       setSavedSignature(signature(menu));
       setConnectionIssue('');
+      // The API also refreshes recipes that use this one as a base. Reload
+      // the shared list so the picker and nested recipe details use the new
+      // prices and item snapshots immediately.
+      await refreshRecipes();
       notify(`“${saved.name}” berhasil disimpan.`);
     } catch (error) {
       setConnectionIssue(error.message);

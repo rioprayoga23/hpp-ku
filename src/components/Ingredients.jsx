@@ -6,19 +6,203 @@ import RecipePickerDialog from './RecipePickerDialog.jsx';
 import {
   decimal,
   ingredientCost,
+  normalizeMenu,
   rupiah,
   units,
   newIngredient,
 } from '../model.js';
 
-function IngredientRow({ item, index, cups, update, remove }) {
+function sourceMenuFor(item, savedRecipes) {
+  const saved = savedRecipes.find(
+    (recipe) => recipe.id === item.sourceRecipeId
+  );
+  const data = item.sourceRecipeData || saved?.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  return normalizeMenu({
+    ...data,
+    id: item.sourceRecipeId || data.id,
+    updatedAt: item.sourceRecipeUpdatedAt || data.updatedAt,
+  });
+}
+
+function detailKindOptions(item) {
+  if (item.kind === 'recipe')
+    return [
+      { value: 'recipe', label: 'Resep tersimpan' },
+      { value: 'ingredient', label: 'Bahan' },
+      { value: 'packaging', label: 'Kemasan' },
+    ];
+  return [
+    { value: 'ingredient', label: 'Bahan' },
+    { value: 'packaging', label: 'Kemasan' },
+  ];
+}
+
+function RecipeDetailItem({ item, savedRecipes, depth = 0, trail = [] }) {
+  const result = ingredientCost(item);
+  const isRecipe = item.kind === 'recipe';
+  const displayName = item.sourceRecipeName || item.name;
+  const sourceKey = String(item.sourceRecipeId || item.id || displayName);
+  const nestedSource = isRecipe ? sourceMenuFor(item, savedRecipes) : null;
+  const nestedItems = nestedSource?.items.filter((child) => child.active) || [];
+  const canShowNested = nestedItems.length > 0 && !trail.includes(sourceKey);
+  return (
+    <>
+      <div
+        className={`recipe-detail-row recipe-detail-depth-${Math.min(depth, 3)}`}
+      >
+        <div className="ingredient-name-field">
+          <Field label="Komponen">
+            {(fieldId) => (
+              <input
+                className="input input-bordered"
+                id={fieldId}
+                value={displayName || '(tanpa nama)'}
+                disabled
+                readOnly
+                aria-label={`Komponen resep ${displayName || 'tersimpan'}`}
+              />
+            )}
+          </Field>
+          <div className="ingredient-options">
+            <Choice
+              value={item.kind}
+              options={detailKindOptions(item)}
+              disabled
+              label={`Jenis ${displayName || 'komponen resep'}`}
+            />
+            <label className="switch-label">
+              <input
+                className="toggle toggle-primary"
+                type="checkbox"
+                checked={item.active !== false}
+                disabled
+                readOnly
+                aria-label={`${item.active === false ? 'Nonaktif' : 'Aktif'} ${displayName || 'komponen resep'}`}
+              />
+              <span>{item.active === false ? 'Nonaktif' : 'Aktif'}</span>
+            </label>
+          </div>
+        </div>
+        <Field className="price-field" label="Harga beli">
+          {(fieldId) => (
+            <NumberInput
+              id={fieldId}
+              money
+              value={item.price}
+              disabled
+              label={`Harga beli ${displayName || 'komponen resep'}`}
+            />
+          )}
+        </Field>
+        <Field label="Isi kemasan">
+          {(fieldId) => (
+            <div className="quantity-input">
+              <NumberInput
+                id={fieldId}
+                value={item.packQty}
+                disabled
+                label={`Isi kemasan ${displayName || 'komponen resep'}`}
+              />
+              <Choice
+                value={item.packUnit}
+                options={units}
+                disabled
+                label={`Satuan kemasan ${displayName || 'komponen resep'}`}
+              />
+            </div>
+          )}
+        </Field>
+        <Field label="Pakai / cup">
+          {(fieldId) => (
+            <div className="quantity-input">
+              <NumberInput
+                id={fieldId}
+                value={item.usage}
+                disabled
+                label={`Pemakaian ${displayName || 'komponen resep'}`}
+              />
+              <Choice
+                value={item.usageUnit}
+                options={units}
+                disabled
+                label={`Satuan pemakaian ${displayName || 'komponen resep'}`}
+              />
+            </div>
+          )}
+        </Field>
+        <div className="ingredient-cost-field recipe-detail-cost">
+          <strong className={result.error ? 'field-error' : ''}>
+            {result.error ? 'Periksa input' : rupiah(result.cost)}
+          </strong>
+        </div>
+      </div>
+      {canShowNested && (
+        <div className="recipe-detail-nested">
+          {nestedItems.map((child) => (
+            <RecipeDetailItem
+              key={`${sourceKey}-${child.id}`}
+              item={child}
+              savedRecipes={savedRecipes}
+              depth={depth + 1}
+              trail={[...trail, sourceKey]}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function RecipeDetails({ item, savedRecipes }) {
+  const [open, setOpen] = useState(false);
+  const source = sourceMenuFor(item, savedRecipes);
+  const detailItems = source?.items.filter((child) => child.active) || [];
+  if (!detailItems.length) return null;
+  const label = item.sourceRecipeName || item.name || 'Resep tersimpan';
+  return (
+    <div
+      className={`recipe-details ${open ? 'is-open' : ''}`}
+      aria-label={`Komponen ${label}`}
+    >
+      <button
+        type="button"
+        className="recipe-details-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="recipe-details-heading">
+          <span>Komponen resep</span>
+          <small>
+            {label} · {detailItems.length} item
+          </small>
+        </span>
+        <ChevronDown aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="recipe-details-list">
+          {detailItems.map((child) => (
+            <RecipeDetailItem
+              key={child.id}
+              item={child}
+              savedRecipes={savedRecipes}
+              trail={[String(item.sourceRecipeId || item.id || label)]}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IngredientRow({ item, index, cups, update, remove, savedRecipes }) {
   const [expanded, setExpanded] = useState(index === 0);
   const result = ingredientCost(item);
   const isRecipe = item.kind === 'recipe';
   const displayName = item.sourceRecipeName || item.name;
   return (
     <article
-      className={`ingredient-row ${expanded ? 'is-expanded' : ''} ${item.active ? '' : 'is-inactive'}`}
+      className={`ingredient-row ${isRecipe ? 'is-recipe' : ''} ${expanded ? 'is-expanded' : ''} ${item.active ? '' : 'is-inactive'}`}
     >
       <div className="ingredient-mobile-heading">
         <button
@@ -49,48 +233,35 @@ function IngredientRow({ item, index, cups, update, remove }) {
       <div className="ingredient-fields" id={`fields-${item.id}`}>
         {isRecipe ? (
           <>
-            <div className="ingredient-name-field recipe-name-field">
-              <Field label="Resep tersimpan">
-                {(fieldId) => (
+            <div className="recipe-main-fields">
+              <div className="ingredient-name-field recipe-name-field">
+                <Field label="Resep tersimpan">
+                  {(fieldId) => (
+                    <input
+                      className="input input-bordered"
+                      id={fieldId}
+                      value={displayName}
+                      disabled
+                      readOnly
+                      aria-label={`Resep tersimpan ${displayName || index + 1}`}
+                    />
+                  )}
+                </Field>
+                <label className="switch-label recipe-active-toggle">
                   <input
-                    className="input input-bordered"
-                    id={fieldId}
-                    value={displayName}
-                    readOnly
-                    aria-label={`Resep tersimpan ${displayName || index + 1}`}
+                    className="toggle toggle-primary"
+                    type="checkbox"
+                    checked={item.active}
+                    onChange={(event) =>
+                      update({ active: event.target.checked })
+                    }
+                    aria-label={`Sertakan ${displayName || 'resep tersimpan'}`}
                   />
-                )}
-              </Field>
-              <label className="switch-label recipe-active-toggle">
-                <input
-                  className="toggle toggle-primary"
-                  type="checkbox"
-                  checked={item.active}
-                  onChange={(event) => update({ active: event.target.checked })}
-                  aria-label={`Sertakan ${displayName || 'resep tersimpan'}`}
-                />
-                <span>{item.active ? 'Aktif' : 'Nonaktif'}</span>
-              </label>
+                  <span>{item.active ? 'Aktif' : 'Nonaktif'}</span>
+                </label>
+              </div>
             </div>
-            <div className="recipe-source-cost">
-              <span>HPP sumber / cup</span>
-              <strong>
-                {item.recipeCost == null ? '—' : rupiah(item.recipeCost)}
-              </strong>
-            </div>
-            <Field className="recipe-usage-field" label="Pakai / cup">
-              {(fieldId) => (
-                <NumberInput
-                  id={fieldId}
-                  value={item.usage}
-                  onChange={(usage) => update({ usage })}
-                  label={`Pemakaian resep ${displayName || index + 1}`}
-                  min={0.001}
-                  suffix="cup"
-                  invalid={item.active && !(Number(item.usage) > 0)}
-                />
-              )}
-            </Field>
+            <RecipeDetails item={item} savedRecipes={savedRecipes} />
           </>
         ) : (
           <>
@@ -272,6 +443,7 @@ export default function Ingredients({
             cups={cups}
             update={(patch) => update(index, patch)}
             remove={() => remove(index)}
+            savedRecipes={savedRecipes}
           />
         ))}
       </div>

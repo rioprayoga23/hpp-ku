@@ -98,6 +98,7 @@ export function Choice({
   options,
   label,
   id,
+  disabled = false,
   className = '',
 }) {
   return (
@@ -105,6 +106,7 @@ export function Choice({
       id={id}
       value={String(value ?? '')}
       onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
       aria-label={label}
       className={`select select-bordered w-full ${className}`.trim()}
     >

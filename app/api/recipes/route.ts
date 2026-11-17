@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/src/server/auth';
+import { calculate, normalizeMenu } from '@/src/model.js';
 
 export const dynamic = 'force-dynamic';
 const FALLBACK_USERS_WORKSPACE = '__hpp_ku_auth_users__';
@@ -42,6 +43,121 @@ function isDuplicate(error: unknown) {
     'code' in error &&
     error.code === '23505'
   );
+}
+
+type RecipeData = Record<string, unknown>;
+type RecipeRow = {
+  id: string;
+  name: string;
+  data: RecipeData;
+  updated_at: string;
+  workspace_id: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function recipeCost(row: RecipeRow) {
+  const menu = normalizeMenu({
+    ...row.data,
+    id: row.id,
+    updatedAt: row.updated_at,
+  });
+  return calculate(menu).cost;
+}
+
+/**
+ * Refresh saved recipe references after a source recipe changes. Each
+ * dependent keeps a snapshot for exports, so update that snapshot and its
+ * cached HPP before moving through the next dependency level.
+ */
+async function syncDependentRecipes(
+  client: NonNullable<ReturnType<typeof getClient>>,
+  sourceId: string
+) {
+  const query = await client
+    .from('recipes')
+    .select('id,name,data,updated_at,workspace_id')
+    .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+    .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE);
+  if (query.error) throw query.error;
+
+  const rows = (query.data ?? []).filter(
+    (row: unknown): row is RecipeRow =>
+      isRecord(row) &&
+      typeof row.id === 'string' &&
+      typeof row.name === 'string' &&
+      isRecord(row.data) &&
+      typeof row.updated_at === 'string' &&
+      typeof row.workspace_id === 'string'
+  );
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const changed = new Map<string, RecipeRow>();
+  const updatedSourceIds = new Set([sourceId]);
+
+  for (let pass = 0; pass < rows.length && updatedSourceIds.size; pass += 1) {
+    let addedSource = false;
+    for (const parent of rows) {
+      if (parent.id === sourceId) continue;
+      const items = Array.isArray(parent.data.items)
+        ? parent.data.items.filter(isRecord)
+        : [];
+      if (!items.length) continue;
+
+      let touched = false;
+      const nextItems = items.map((item) => {
+        const referencedId =
+          item.kind === 'recipe' && typeof item.sourceRecipeId === 'string'
+            ? item.sourceRecipeId
+            : null;
+        if (!referencedId || !updatedSourceIds.has(referencedId)) return item;
+        const source = byId.get(referencedId);
+        if (!source) return item;
+        const sourceName =
+          source.name || String(source.data.name || 'Resep tersimpan');
+        const sourceHpp = recipeCost(source);
+        const nextItem = {
+          ...item,
+          name: sourceName,
+          sourceRecipeName: sourceName,
+          sourceRecipeUpdatedAt: source.updated_at,
+          sourceRecipeData: cloneJson(source.data),
+          recipeCost: sourceHpp,
+          price: sourceHpp,
+        };
+        if (JSON.stringify(nextItem) !== JSON.stringify(item)) touched = true;
+        return nextItem;
+      });
+      if (!touched) continue;
+
+      const updated: RecipeRow = {
+        ...parent,
+        data: { ...parent.data, items: nextItems },
+        updated_at: new Date().toISOString(),
+      };
+      Object.assign(parent, updated);
+      byId.set(parent.id, parent);
+      changed.set(parent.id, parent);
+      if (!updatedSourceIds.has(parent.id)) {
+        updatedSourceIds.add(parent.id);
+        addedSource = true;
+      }
+    }
+    if (!addedSource) break;
+  }
+
+  for (const row of changed.values()) {
+    const result = await client
+      .from('recipes')
+      .update({ data: row.data, updated_at: row.updated_at })
+      .eq('id', row.id);
+    if (result.error) throw result.error;
+  }
 }
 export async function GET() {
   const user = await getAuthUser();
@@ -118,6 +234,7 @@ export async function POST(request: Request) {
         .select('id,name,data,updated_at')
         .single();
       if (result.error) throw result.error;
+      await syncDependentRecipes(client, result.data.id);
       return NextResponse.json({ recipe: result.data });
     }
 
@@ -161,6 +278,7 @@ export async function POST(request: Request) {
         .single();
     }
     if (result.error) throw result.error;
+    await syncDependentRecipes(client, result.data.id);
     return NextResponse.json({ recipe: result.data });
   } catch (error) {
     return NextResponse.json({ error: databaseError(error) }, { status: 500 });
