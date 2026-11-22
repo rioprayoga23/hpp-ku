@@ -6,6 +6,7 @@ import {
   Check,
   CheckCheck,
   ChevronRight,
+  Copy,
   CupSoda,
   Download,
   FolderPlus,
@@ -306,6 +307,85 @@ export default function App() {
     setCategoryDialogOpen(false);
     if (value) notify(`Kategori “${value}” dipilih.`);
   }
+  async function duplicateRecipe(recipe) {
+    if (saving) return;
+
+    const performDuplicate = async () => {
+      setSaving(true);
+      try {
+        const sourceData =
+          draft.id === recipe.id ? draft : recipe.data || recipe;
+        const normalized = normalizeMenu(sourceData);
+
+        const existingNames = new Set(
+          recipes.map((r) => String(r.name || '').trim().toLowerCase())
+        );
+        const baseName = String(
+          recipe.name || normalized.name || 'Resep'
+        ).trim();
+        let copyName = `${baseName} (Salinan)`;
+        if (existingNames.has(copyName.toLowerCase())) {
+          let counter = 2;
+          while (
+            existingNames.has(`${baseName} (Salinan ${counter})`.toLowerCase())
+          ) {
+            counter++;
+          }
+          copyName = `${baseName} (Salinan ${counter})`;
+        }
+
+        const newMenu = {
+          ...normalized,
+          id: id(),
+          name: copyName.slice(0, 160),
+          items: normalized.items.map((item) => ({
+            ...item,
+            id: id(),
+          })),
+          overheads: normalized.overheads.map((overhead) => ({
+            ...overhead,
+            id: id(),
+          })),
+          updatedAt: null,
+        };
+
+        const saved = await saveRecipe(newMenu);
+        const menu = normalizeMenu({
+          ...saved.data,
+          id: saved.id,
+          updatedAt: saved.updated_at,
+        });
+
+        setRecipes((items) => [
+          saved,
+          ...items.filter((item) => item.id !== saved.id),
+        ]);
+        touched.current = true;
+        setDraft(menu);
+        setSavedSignature(signature(menu));
+        setConnectionIssue('');
+        await refreshRecipes();
+        notify(`“${saved.name}” berhasil diduplikasi.`);
+      } catch (error) {
+        setConnectionIssue(error.message);
+        toast.error(error.message);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    if (dirty && touched.current) {
+      setPendingAction({
+        title: `Duplikat “${recipe.name}”?`,
+        description:
+          'Perubahan resep yang sedang dibuka belum disimpan. Duplikasi akan beralih ke resep hasil salinan.',
+        label: 'Duplikat resep',
+        action: performDuplicate,
+      });
+    } else {
+      await performDuplicate();
+    }
+  }
   function confirmDelete(recipe) {
     setPendingAction({
       title: `Hapus “${recipe.name}”?`,
@@ -536,6 +616,16 @@ export default function App() {
                     {recipe.name}
                     {draft.id === recipe.id && <Check aria-hidden="true" />}
                   </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="recipe-tab-duplicate"
+                    aria-label={`Duplikat resep ${recipe.name}`}
+                    title={`Duplikat resep ${recipe.name}`}
+                    onClick={() => duplicateRecipe(recipe)}
+                  >
+                    <Copy aria-hidden="true" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

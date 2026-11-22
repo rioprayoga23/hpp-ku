@@ -535,10 +535,14 @@ h3 {
   width: 14px;
   color: var(--color-primary);
 }
+.recipe-tab-duplicate,
 .recipe-tab-delete {
   min-height: 40px !important;
   width: 38px;
   color: var(--muted);
+}
+.recipe-tab-duplicate:hover {
+  color: var(--color-primary);
 }
 .recipe-tab-delete:hover {
   color: var(--color-error);
