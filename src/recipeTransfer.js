@@ -1,6 +1,7 @@
 import {
   calculate,
   decimal,
+  findMatchingRecipe,
   freshMenu,
   id,
   ingredientCost,
@@ -37,19 +38,16 @@ function isObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
-function recipeSource(item, recipes) {
-  const source = (recipes || []).find(
-    (recipe) => recipe?.id && recipe.id === item.sourceRecipeId
-  );
+function recipeSource(item, recipes = []) {
+  const source = findMatchingRecipe(item, recipes);
   if (isObject(source?.data)) return source.data;
+  if (isObject(source)) return source;
   if (isObject(item.sourceRecipeData)) return item.sourceRecipeData;
   return null;
 }
 
 function sourceLabel(item, source, recipes = []) {
-  const liveSource = (recipes || []).find(
-    (recipe) => recipe?.id && recipe.id === item?.sourceRecipeId
-  );
+  const liveSource = findMatchingRecipe(item, recipes);
   return clean(
     liveSource?.name ||
       source?.name ||

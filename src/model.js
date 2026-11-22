@@ -316,6 +316,44 @@ export function calculate(menu) {
   };
 }
 
+export function findMatchingRecipe(item, savedRecipes = []) {
+  if (!item || !Array.isArray(savedRecipes) || !savedRecipes.length) return null;
+
+  // 1. Match by item.sourceRecipeId == recipe.id
+  if (item.sourceRecipeId) {
+    const byId = savedRecipes.find((r) => r && r.id === item.sourceRecipeId);
+    if (byId) return byId;
+  }
+
+  // 2. Match by item.sourceRecipeData.id == recipe.id
+  const dataId = item.sourceRecipeData?.id || item.sourceRecipeData?.menu?.id;
+  if (dataId) {
+    const byDataId = savedRecipes.find((r) => r && r.id === dataId);
+    if (byDataId) return byDataId;
+  }
+
+  // 3. Match by name
+  const names = [
+    item.sourceRecipeName,
+    item.name,
+    item.sourceRecipeData?.name,
+  ]
+    .filter(Boolean)
+    .map((n) => String(n).trim().toLowerCase());
+
+  for (const name of names) {
+    if (!name) continue;
+    const byName = savedRecipes.find((r) => {
+      if (!r) return false;
+      const rName = String(r.name || r.data?.name || '').trim().toLowerCase();
+      return rName === name;
+    });
+    if (byName) return byName;
+  }
+
+  return null;
+}
+
 export function syncRecipeItems(menu, savedRecipes) {
   if (
     !menu ||
@@ -326,20 +364,13 @@ export function syncRecipeItems(menu, savedRecipes) {
     return menu;
   }
 
-  const recipeMap = new Map();
-  for (const recipe of savedRecipes) {
-    if (recipe && recipe.id) {
-      recipeMap.set(recipe.id, recipe);
-    }
-  }
-
   let hasChanges = false;
   const nextItems = menu.items.map((item) => {
-    if (item.kind !== 'recipe' || !item.sourceRecipeId) {
+    if (item.kind !== 'recipe') {
       return item;
     }
 
-    const source = recipeMap.get(item.sourceRecipeId);
+    const source = findMatchingRecipe(item, savedRecipes);
     if (!source) {
       return item;
     }
@@ -352,21 +383,40 @@ export function syncRecipeItems(menu, savedRecipes) {
           item.name ||
           'Resep tersimpan'
       );
+
+    const rawData = source.data || source;
+    const parsedData =
+      typeof rawData === 'string'
+        ? (() => {
+            try {
+              return JSON.parse(rawData);
+            } catch {
+              return {};
+            }
+          })()
+        : rawData && typeof rawData === 'object'
+          ? rawData
+          : {};
+
     const sourceMenu =
       source.menu ||
       normalizeMenu({
-        ...(source.data || {}),
-        id: source.id,
+        ...parsedData,
+        id: source.id || parsedData.id,
         name: sourceName,
-        updatedAt: source.updated_at,
+        updatedAt:
+          source.updated_at || parsedData.updatedAt || parsedData.updated_at,
       });
 
     const calculated = calculate(sourceMenu);
     const sourceCost = source.cost ?? calculated.cost;
 
-    const newSourceData = structuredClone(source.data || sourceMenu);
-    const newUpdatedAt = source.updated_at ?? null;
+    const newSourceData = structuredClone(sourceMenu);
+    const newUpdatedAt =
+      source.updated_at ?? parsedData.updatedAt ?? parsedData.updated_at ?? null;
+    const newSourceId = source.id || item.sourceRecipeId;
 
+    const isIdDifferent = newSourceId && item.sourceRecipeId !== newSourceId;
     const isNameDifferent =
       item.name !== sourceName || item.sourceRecipeName !== sourceName;
     const isCostDifferent =
@@ -379,6 +429,7 @@ export function syncRecipeItems(menu, savedRecipes) {
       JSON.stringify(item.sourceRecipeData) !== JSON.stringify(newSourceData);
 
     if (
+      isIdDifferent ||
       isNameDifferent ||
       isCostDifferent ||
       isUpdatedAtDifferent ||
@@ -387,6 +438,7 @@ export function syncRecipeItems(menu, savedRecipes) {
       hasChanges = true;
       return {
         ...item,
+        sourceRecipeId: newSourceId || item.sourceRecipeId,
         name: sourceName,
         sourceRecipeName: sourceName,
         sourceRecipeUpdatedAt: newUpdatedAt,

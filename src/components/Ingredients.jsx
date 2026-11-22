@@ -5,6 +5,7 @@ import IconAction from './IconAction.jsx';
 import RecipePickerDialog from './RecipePickerDialog.jsx';
 import {
   decimal,
+  findMatchingRecipe,
   ingredientCost,
   normalizeMenu,
   rupiah,
@@ -13,15 +14,27 @@ import {
 } from '../model.js';
 
 function sourceMenuFor(item, savedRecipes = []) {
-  const saved = savedRecipes?.find(
-    (recipe) => recipe.id === item.sourceRecipeId
-  );
-  const data = saved?.data || item.sourceRecipeData;
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const saved = findMatchingRecipe(item, savedRecipes);
+  const rawData = saved?.data || saved || item.sourceRecipeData;
+  const data =
+    typeof rawData === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(rawData);
+          } catch {
+            return null;
+          }
+        })()
+      : rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+        ? rawData
+        : null;
+
+  if (!data) return null;
+
   return normalizeMenu({
     ...data,
-    id: item.sourceRecipeId || data.id,
-    name: saved?.name || data.name,
+    id: saved?.id || item.sourceRecipeId || data.id,
+    name: saved?.name || data.name || item.sourceRecipeName || item.name,
     updatedAt:
       saved?.updated_at || item.sourceRecipeUpdatedAt || data.updatedAt,
   });
@@ -43,9 +56,7 @@ function detailKindOptions(item) {
 function RecipeDetailItem({ item, savedRecipes, depth = 0, trail = [] }) {
   const result = ingredientCost(item);
   const isRecipe = item.kind === 'recipe';
-  const saved = isRecipe
-    ? savedRecipes?.find((recipe) => recipe.id === item.sourceRecipeId)
-    : null;
+  const saved = isRecipe ? findMatchingRecipe(item, savedRecipes) : null;
   const displayName = saved?.name || item.sourceRecipeName || item.name;
   const sourceKey = String(item.sourceRecipeId || item.id || displayName);
   const nestedSource = isRecipe ? sourceMenuFor(item, savedRecipes) : null;
@@ -164,9 +175,7 @@ function RecipeDetails({ item, savedRecipes }) {
   const source = sourceMenuFor(item, savedRecipes);
   const detailItems = source?.items.filter((child) => child.active) || [];
   if (!detailItems.length) return null;
-  const saved = savedRecipes?.find(
-    (recipe) => recipe.id === item.sourceRecipeId
-  );
+  const saved = findMatchingRecipe(item, savedRecipes);
   const label =
     saved?.name || item.sourceRecipeName || item.name || 'Resep tersimpan';
   return (
@@ -208,9 +217,7 @@ function IngredientRow({ item, index, cups, update, remove, savedRecipes }) {
   const [expanded, setExpanded] = useState(index === 0);
   const result = ingredientCost(item);
   const isRecipe = item.kind === 'recipe';
-  const saved = isRecipe
-    ? savedRecipes?.find((recipe) => recipe.id === item.sourceRecipeId)
-    : null;
+  const saved = isRecipe ? findMatchingRecipe(item, savedRecipes) : null;
   const displayName = saved?.name || item.sourceRecipeName || item.name;
   return (
     <article

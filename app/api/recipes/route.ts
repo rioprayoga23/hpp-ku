@@ -111,13 +111,33 @@ async function syncDependentRecipes(
 
       let touched = false;
       const nextItems = items.map((item) => {
+        if (item.kind !== 'recipe') return item;
+
+        let source: RecipeRow | undefined = undefined;
         const referencedId =
-          item.kind === 'recipe' && typeof item.sourceRecipeId === 'string'
-            ? item.sourceRecipeId
-            : null;
-        if (!referencedId || !updatedSourceIds.has(referencedId)) return item;
-        const source = byId.get(referencedId);
+          typeof item.sourceRecipeId === 'string' ? item.sourceRecipeId : null;
+        if (referencedId && updatedSourceIds.has(referencedId)) {
+          source = byId.get(referencedId);
+        } else {
+          for (const updId of updatedSourceIds) {
+            const candidate = byId.get(updId);
+            if (!candidate) continue;
+            const candName = String(
+              candidate.name || candidate.data?.name || ''
+            )
+              .trim()
+              .toLowerCase();
+            const itemName = String(item.sourceRecipeName || item.name || '')
+              .trim()
+              .toLowerCase();
+            if (candName && candName === itemName) {
+              source = candidate;
+              break;
+            }
+          }
+        }
         if (!source) return item;
+
         const sourceName =
           source.name || String(source.data.name || 'Resep tersimpan');
         const sourceHpp = recipeCost(source);
@@ -129,6 +149,7 @@ async function syncDependentRecipes(
         });
         const nextItem = {
           ...item,
+          sourceRecipeId: source.id,
           name: sourceName,
           sourceRecipeName: sourceName,
           sourceRecipeUpdatedAt: source.updated_at,
