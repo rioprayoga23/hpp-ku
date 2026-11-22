@@ -38,16 +38,24 @@ function isObject(value) {
 }
 
 function recipeSource(item, recipes) {
-  if (isObject(item.sourceRecipeData)) return item.sourceRecipeData;
   const source = (recipes || []).find(
     (recipe) => recipe?.id && recipe.id === item.sourceRecipeId
   );
-  return isObject(source?.data) ? source.data : null;
+  if (isObject(source?.data)) return source.data;
+  if (isObject(item.sourceRecipeData)) return item.sourceRecipeData;
+  return null;
 }
 
-function sourceLabel(item, source) {
+function sourceLabel(item, source, recipes = []) {
+  const liveSource = (recipes || []).find(
+    (recipe) => recipe?.id && recipe.id === item?.sourceRecipeId
+  );
   return clean(
-    item.sourceRecipeName || source?.name || item.name || 'Resep tersimpan'
+    liveSource?.name ||
+      source?.name ||
+      item?.sourceRecipeName ||
+      item?.name ||
+      'Resep tersimpan'
   );
 }
 

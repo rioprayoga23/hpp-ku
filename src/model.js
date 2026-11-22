@@ -315,3 +315,131 @@ export function calculate(menu) {
     lossWarning: marginActive && price !== null && costValid && profit < 0,
   };
 }
+
+export function syncRecipeItems(menu, savedRecipes) {
+  if (
+    !menu ||
+    !Array.isArray(menu.items) ||
+    !Array.isArray(savedRecipes) ||
+    !savedRecipes.length
+  ) {
+    return menu;
+  }
+
+  const recipeMap = new Map();
+  for (const recipe of savedRecipes) {
+    if (recipe && recipe.id) {
+      recipeMap.set(recipe.id, recipe);
+    }
+  }
+
+  let hasChanges = false;
+  const nextItems = menu.items.map((item) => {
+    if (item.kind !== 'recipe' || !item.sourceRecipeId) {
+      return item;
+    }
+
+    const source = recipeMap.get(item.sourceRecipeId);
+    if (!source) {
+      return item;
+    }
+
+    const sourceName =
+      source.name ||
+      String(
+        source.data?.name ||
+          item.sourceRecipeName ||
+          item.name ||
+          'Resep tersimpan'
+      );
+    const sourceMenu =
+      source.menu ||
+      normalizeMenu({
+        ...(source.data || {}),
+        id: source.id,
+        name: sourceName,
+        updatedAt: source.updated_at,
+      });
+
+    const calculated = calculate(sourceMenu);
+    const sourceCost = source.cost ?? calculated.cost;
+
+    const newSourceData = structuredClone(source.data || sourceMenu);
+    const newUpdatedAt = source.updated_at ?? null;
+
+    const isNameDifferent =
+      item.name !== sourceName || item.sourceRecipeName !== sourceName;
+    const isCostDifferent =
+      sourceCost !== null &&
+      Number.isFinite(sourceCost) &&
+      (item.recipeCost !== sourceCost || item.price !== sourceCost);
+    const isUpdatedAtDifferent =
+      newUpdatedAt && item.sourceRecipeUpdatedAt !== newUpdatedAt;
+    const isDataDifferent =
+      JSON.stringify(item.sourceRecipeData) !== JSON.stringify(newSourceData);
+
+    if (
+      isNameDifferent ||
+      isCostDifferent ||
+      isUpdatedAtDifferent ||
+      isDataDifferent
+    ) {
+      hasChanges = true;
+      return {
+        ...item,
+        name: sourceName,
+        sourceRecipeName: sourceName,
+        sourceRecipeUpdatedAt: newUpdatedAt,
+        sourceRecipeData: newSourceData,
+        recipeCost:
+          sourceCost !== null && Number.isFinite(sourceCost)
+            ? sourceCost
+            : item.recipeCost,
+        price:
+          sourceCost !== null && Number.isFinite(sourceCost)
+            ? sourceCost
+            : item.price,
+      };
+    }
+
+    return item;
+  });
+
+  if (!hasChanges) {
+    return menu;
+  }
+
+  return {
+    ...menu,
+    items: nextItems,
+  };
+}
+
+export function syncAllRecipes(recipes) {
+  if (!Array.isArray(recipes) || !recipes.length) return recipes;
+  let currentList = recipes;
+  for (let pass = 0; pass < 5; pass++) {
+    let changed = false;
+    currentList = currentList.map((r) => {
+      const menu = normalizeMenu({
+        ...(r.data || {}),
+        id: r.id,
+        name: r.name,
+        updatedAt: r.updated_at,
+      });
+      const synced = syncRecipeItems(menu, currentList);
+      if (synced !== menu) {
+        changed = true;
+        return {
+          ...r,
+          name: synced.name,
+          data: synced,
+          updated_at: r.updated_at,
+        };
+      }
+      return r;
+    });
+    if (!changed) break;
+  }
+  return currentList;
+}

@@ -121,14 +121,26 @@ async function syncDependentRecipes(
         const sourceName =
           source.name || String(source.data.name || 'Resep tersimpan');
         const sourceHpp = recipeCost(source);
+        const sourceMenu = normalizeMenu({
+          ...source.data,
+          id: source.id,
+          name: sourceName,
+          updatedAt: source.updated_at,
+        });
         const nextItem = {
           ...item,
           name: sourceName,
           sourceRecipeName: sourceName,
           sourceRecipeUpdatedAt: source.updated_at,
-          sourceRecipeData: cloneJson(source.data),
-          recipeCost: sourceHpp,
-          price: sourceHpp,
+          sourceRecipeData: cloneJson(sourceMenu),
+          recipeCost:
+            sourceHpp !== null && Number.isFinite(sourceHpp)
+              ? sourceHpp
+              : item.recipeCost,
+          price:
+            sourceHpp !== null && Number.isFinite(sourceHpp)
+              ? sourceHpp
+              : item.price,
         };
         if (JSON.stringify(nextItem) !== JSON.stringify(item)) touched = true;
         return nextItem;
@@ -307,4 +319,111 @@ export async function DELETE(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: databaseError(error) }, { status: 500 });
   }
+}
+
+export async function PATCH(request: Request) {
+  if (!(await getAuthUser())) return unauthorized();
+  const client = getClient();
+  if (!client) return configError();
+
+  const body = await request.json().catch(() => null);
+  const action = body?.action;
+
+  if (action === 'rename-category') {
+    const from = String(body?.from ?? '').trim();
+    const to = String(body?.to ?? '').trim().slice(0, 60);
+    if (!from || !to) {
+      return NextResponse.json(
+        { error: 'Nama kategori lama dan baru harus diisi.' },
+        { status: 400 }
+      );
+    }
+    try {
+      const query = await client
+        .from('recipes')
+        .select('id,name,data,updated_at,workspace_id')
+        .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+        .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE);
+      if (query.error) throw query.error;
+
+      const rows = (query.data ?? []).filter(
+        (row: unknown): row is RecipeRow =>
+          isRecord(row) &&
+          typeof row.id === 'string' &&
+          isRecord(row.data)
+      );
+
+      const matching = rows.filter(
+        (row) => String(row.data.category ?? '').trim() === from
+      );
+
+      const now = new Date().toISOString();
+      for (const row of matching) {
+        const nextData = { ...row.data, category: to };
+        const result = await client
+          .from('recipes')
+          .update({ data: nextData, updated_at: now })
+          .eq('id', row.id);
+        if (result.error) throw result.error;
+      }
+
+      return NextResponse.json({ ok: true, count: matching.length });
+    } catch (error) {
+      return NextResponse.json(
+        { error: databaseError(error) },
+        { status: 500 }
+      );
+    }
+  }
+
+  if (action === 'delete-category') {
+    const category = String(body?.category ?? '').trim();
+    if (!category) {
+      return NextResponse.json(
+        { error: 'Nama kategori harus diisi.' },
+        { status: 400 }
+      );
+    }
+    try {
+      const query = await client
+        .from('recipes')
+        .select('id,name,data,updated_at,workspace_id')
+        .neq('workspace_id', FALLBACK_USERS_WORKSPACE)
+        .neq('workspace_id', FALLBACK_SESSIONS_WORKSPACE);
+      if (query.error) throw query.error;
+
+      const rows = (query.data ?? []).filter(
+        (row: unknown): row is RecipeRow =>
+          isRecord(row) &&
+          typeof row.id === 'string' &&
+          isRecord(row.data)
+      );
+
+      const matching = rows.filter(
+        (row) => String(row.data.category ?? '').trim() === category
+      );
+
+      const now = new Date().toISOString();
+      for (const row of matching) {
+        const nextData = { ...row.data, category: '' };
+        const result = await client
+          .from('recipes')
+          .update({ data: nextData, updated_at: now })
+          .eq('id', row.id);
+        if (result.error) throw result.error;
+      }
+
+      return NextResponse.json({ ok: true, count: matching.length });
+    } catch (error) {
+      return NextResponse.json(
+        { error: databaseError(error) },
+        { status: 500 }
+      );
+    }
+  }
+
+  return NextResponse.json(
+    { error: 'Aksi kategori tidak valid.' },
+    { status: 400 }
+  );
 }

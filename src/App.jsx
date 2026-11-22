@@ -14,6 +14,7 @@ import {
   LogOut,
   Minus,
   Moon,
+  Pencil,
   Plus,
   Save,
   Sun,
@@ -39,14 +40,28 @@ import Pricing from './components/Pricing.jsx';
 import Overheads from './components/Overheads.jsx';
 import TransferDialog from './components/TransferDialog.jsx';
 import CategoryDialog from './components/CategoryDialog.jsx';
-import { calculate, freshMenu, id, normalizeMenu, rupiah } from './model.js';
+import {
+  calculate,
+  freshMenu,
+  id,
+  normalizeMenu,
+  rupiah,
+  syncAllRecipes,
+  syncRecipeItems,
+} from './model.js';
 import {
   copiedHppTotal,
   exportRecipe,
   exportRecipeHtml,
   exportRecipesExcel,
 } from './recipeTransfer.js';
-import { deleteRecipe, listRecipes, saveRecipe } from './recipesApi.js';
+import {
+  deleteCategory,
+  deleteRecipe,
+  listRecipes,
+  renameCategory,
+  saveRecipe,
+} from './recipesApi.js';
 import { Toaster, toast } from 'sonner';
 
 const signature = ({ updatedAt, ...menu }) => {
@@ -103,6 +118,14 @@ export default function App() {
     if (draft.category) values.add(draft.category);
     return Array.from(values).sort((a, b) => a.localeCompare(b, 'id'));
   }, [categories, draft.category]);
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    for (const r of recipes) {
+      const cat = recipeCategory(r);
+      if (cat) counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [recipes]);
 
   function update(patch) {
     touched.current = true;
@@ -126,15 +149,25 @@ export default function App() {
   async function refreshRecipes() {
     setLoading(true);
     try {
-      const items = await listRecipes();
+      const rawItems = await listRecipes();
+      const items = syncAllRecipes(rawItems);
       setRecipes(items);
       setConnectionIssue('');
+
+      setDraft((current) => {
+        const synced = syncRecipeItems(current, items);
+        return synced;
+      });
+
       if (!touched.current && items.length) {
-        const menu = normalizeMenu({
-          ...items[0].data,
-          id: items[0].id,
-          updatedAt: items[0].updated_at,
-        });
+        const menu = syncRecipeItems(
+          normalizeMenu({
+            ...items[0].data,
+            id: items[0].id,
+            updatedAt: items[0].updated_at,
+          }),
+          items
+        );
         setDraft(menu);
         setSavedSignature(signature(menu));
       }
@@ -147,15 +180,19 @@ export default function App() {
   useEffect(() => {
     let active = true;
     listRecipes()
-      .then((items) => {
+      .then((rawItems) => {
         if (!active) return;
+        const items = syncAllRecipes(rawItems);
         setRecipes(items);
         if (!touched.current && items.length) {
-          const menu = normalizeMenu({
-            ...items[0].data,
-            id: items[0].id,
-            updatedAt: items[0].updated_at,
-          });
+          const menu = syncRecipeItems(
+            normalizeMenu({
+              ...items[0].data,
+              id: items[0].id,
+              updatedAt: items[0].updated_at,
+            }),
+            items
+          );
           setDraft(menu);
           setSavedSignature(signature(menu));
         }
@@ -194,10 +231,10 @@ export default function App() {
       return toast.error(
         'Jumlah cup harus bilangan bulat antara 1 dan 100.000.'
       );
-    const snapshot = structuredClone(draft);
+    const syncedSnapshot = syncRecipeItems(structuredClone(draft), recipes);
     setSaving(true);
     try {
-      const saved = await saveRecipe(snapshot);
+      const saved = await saveRecipe(syncedSnapshot);
       const menu = normalizeMenu({
         ...saved.data,
         id: saved.id,
@@ -208,8 +245,8 @@ export default function App() {
         ...items.filter((item) => item.id !== saved.id),
       ]);
       setDraft((current) =>
-        current.id === snapshot.id
-          ? { ...current, id: saved.id, updatedAt: saved.updated_at }
+        current.id === syncedSnapshot.id
+          ? { ...current, ...menu, id: saved.id, updatedAt: saved.updated_at }
           : current
       );
       setSavedSignature(signature(menu));
@@ -228,11 +265,12 @@ export default function App() {
   }
   function openRecipe(recipe) {
     const open = () => {
-      const menu = normalizeMenu({
+      const normalized = normalizeMenu({
         ...recipe.data,
         id: recipe.id,
         updatedAt: recipe.updated_at,
       });
+      const menu = syncRecipeItems(normalized, recipes);
       touched.current = true;
       setDraft(menu);
       setSavedSignature(connectionIssue ? '' : signature(menu));
@@ -307,6 +345,87 @@ export default function App() {
     setCategoryDialogOpen(false);
     if (value) notify(`Kategori “${value}” dipilih.`);
   }
+  async function handleRenameCategory(from, to) {
+    const trimmedFrom = String(from ?? '').trim();
+    const trimmedTo = String(to ?? '').trim();
+    if (!trimmedTo || trimmedFrom === trimmedTo) return;
+
+    try {
+      await renameCategory(trimmedFrom, trimmedTo);
+
+      setRecipes((current) =>
+        current.map((r) => {
+          if (recipeCategory(r) === trimmedFrom) {
+            return {
+              ...r,
+              data: { ...(r.data || {}), category: trimmedTo },
+            };
+          }
+          return r;
+        })
+      );
+
+      if (recipeCategory({ data: draft }) === trimmedFrom) {
+        setDraft((current) => {
+          const updated = { ...current, category: trimmedTo };
+          if (!dirty) {
+            setSavedSignature(signature(updated));
+          }
+          return updated;
+        });
+      }
+
+      if (categoryFilter === trimmedFrom) {
+        setCategoryFilter(trimmedTo);
+      }
+
+      await refreshRecipes();
+      notify(`Kategori “${trimmedFrom}” diubah menjadi “${trimmedTo}”.`);
+    } catch (error) {
+      toast.error(error.message);
+      throw error;
+    }
+  }
+  async function handleDeleteCategory(category) {
+    const trimmed = String(category ?? '').trim();
+    if (!trimmed) return;
+
+    try {
+      await deleteCategory(trimmed);
+
+      setRecipes((current) =>
+        current.map((r) => {
+          if (recipeCategory(r) === trimmed) {
+            return {
+              ...r,
+              data: { ...(r.data || {}), category: '' },
+            };
+          }
+          return r;
+        })
+      );
+
+      if (recipeCategory({ data: draft }) === trimmed) {
+        setDraft((current) => {
+          const updated = { ...current, category: '' };
+          if (!dirty) {
+            setSavedSignature(signature(updated));
+          }
+          return updated;
+        });
+      }
+
+      if (categoryFilter === trimmed) {
+        setCategoryFilter('');
+      }
+
+      await refreshRecipes();
+      notify(`Kategori “${trimmed}” dihapus.`);
+    } catch (error) {
+      toast.error(error.message);
+      throw error;
+    }
+  }
   async function duplicateRecipe(recipe) {
     if (saving) return;
 
@@ -315,7 +434,10 @@ export default function App() {
       try {
         const sourceData =
           draft.id === recipe.id ? draft : recipe.data || recipe;
-        const normalized = normalizeMenu(sourceData);
+        const normalized = syncRecipeItems(
+          normalizeMenu(sourceData),
+          recipes
+        );
 
         const existingNames = new Set(
           recipes.map((r) => String(r.name || '').trim().toLowerCase())
@@ -573,7 +695,19 @@ export default function App() {
               {!loading && <span>{recipes.length}</span>} */}
             </div>
           </div>
-          <div className="library-section-label">Kategori</div>
+          <div className="library-section-label category-section-label">
+            <span>Kategori</span>
+            <button
+              type="button"
+              className="category-manage-btn"
+              onClick={() => setCategoryDialogOpen(true)}
+              title="Kelola kategori (tambah, edit, hapus)"
+              aria-label="Kelola kategori"
+            >
+              <Pencil aria-hidden="true" />
+              Kelola
+            </button>
+          </div>
           <div className="recipe-category-filters" aria-label="Filter kategori">
             <button
               className={`category-filter ${!activeCategoryFilter ? 'is-selected' : ''}`}
@@ -803,8 +937,11 @@ export default function App() {
         key={categoryDialogOpen ? 'category-open' : 'category-closed'}
         open={categoryDialogOpen}
         categories={categories}
+        categoryCounts={categoryCounts}
         onClose={() => setCategoryDialogOpen(false)}
         onCreate={applyCategory}
+        onRename={handleRenameCategory}
+        onDelete={handleDeleteCategory}
       />
       <AlertDialog
         open={Boolean(pendingAction)}

@@ -12,16 +12,18 @@ import {
   newIngredient,
 } from '../model.js';
 
-function sourceMenuFor(item, savedRecipes) {
-  const saved = savedRecipes.find(
+function sourceMenuFor(item, savedRecipes = []) {
+  const saved = savedRecipes?.find(
     (recipe) => recipe.id === item.sourceRecipeId
   );
-  const data = item.sourceRecipeData || saved?.data;
+  const data = saved?.data || item.sourceRecipeData;
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
   return normalizeMenu({
     ...data,
     id: item.sourceRecipeId || data.id,
-    updatedAt: item.sourceRecipeUpdatedAt || data.updatedAt,
+    name: saved?.name || data.name,
+    updatedAt:
+      saved?.updated_at || item.sourceRecipeUpdatedAt || data.updatedAt,
   });
 }
 
@@ -41,7 +43,10 @@ function detailKindOptions(item) {
 function RecipeDetailItem({ item, savedRecipes, depth = 0, trail = [] }) {
   const result = ingredientCost(item);
   const isRecipe = item.kind === 'recipe';
-  const displayName = item.sourceRecipeName || item.name;
+  const saved = isRecipe
+    ? savedRecipes?.find((recipe) => recipe.id === item.sourceRecipeId)
+    : null;
+  const displayName = saved?.name || item.sourceRecipeName || item.name;
   const sourceKey = String(item.sourceRecipeId || item.id || displayName);
   const nestedSource = isRecipe ? sourceMenuFor(item, savedRecipes) : null;
   const nestedItems = nestedSource?.items.filter((child) => child.active) || [];
@@ -159,7 +164,11 @@ function RecipeDetails({ item, savedRecipes }) {
   const source = sourceMenuFor(item, savedRecipes);
   const detailItems = source?.items.filter((child) => child.active) || [];
   if (!detailItems.length) return null;
-  const label = item.sourceRecipeName || item.name || 'Resep tersimpan';
+  const saved = savedRecipes?.find(
+    (recipe) => recipe.id === item.sourceRecipeId
+  );
+  const label =
+    saved?.name || item.sourceRecipeName || item.name || 'Resep tersimpan';
   return (
     <div
       className={`recipe-details ${open ? 'is-open' : ''}`}
@@ -199,7 +208,10 @@ function IngredientRow({ item, index, cups, update, remove, savedRecipes }) {
   const [expanded, setExpanded] = useState(index === 0);
   const result = ingredientCost(item);
   const isRecipe = item.kind === 'recipe';
-  const displayName = item.sourceRecipeName || item.name;
+  const saved = isRecipe
+    ? savedRecipes?.find((recipe) => recipe.id === item.sourceRecipeId)
+    : null;
+  const displayName = saved?.name || item.sourceRecipeName || item.name;
   return (
     <article
       className={`ingredient-row ${isRecipe ? 'is-recipe' : ''} ${expanded ? 'is-expanded' : ''} ${item.active ? '' : 'is-inactive'}`}
