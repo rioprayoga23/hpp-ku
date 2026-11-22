@@ -316,27 +316,41 @@ export function calculate(menu) {
   };
 }
 
+export function canonicalRecipeName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 export function findMatchingRecipe(item, savedRecipes = []) {
   if (!item || !Array.isArray(savedRecipes) || !savedRecipes.length) return null;
 
-  // 1. Match by item.sourceRecipeId == recipe.id
-  if (item.sourceRecipeId) {
-    const byId = savedRecipes.find((r) => r && r.id === item.sourceRecipeId);
+  // 1. Match by ID (sourceRecipeId, sourceRecipeData.id, sourceRecipeData.menu.id)
+  const itemIds = [
+    item.sourceRecipeId,
+    item.sourceRecipeData?.id,
+    item.sourceRecipeData?.menu?.id,
+  ]
+    .filter(Boolean)
+    .map(String);
+
+  for (const targetId of itemIds) {
+    if (!targetId) continue;
+    const byId = savedRecipes.find((r) => {
+      if (!r) return false;
+      const rIds = [r.id, r.data?.id, r.menu?.id].filter(Boolean).map(String);
+      return rIds.includes(targetId);
+    });
     if (byId) return byId;
   }
 
-  // 2. Match by item.sourceRecipeData.id == recipe.id
-  const dataId = item.sourceRecipeData?.id || item.sourceRecipeData?.menu?.id;
-  if (dataId) {
-    const byDataId = savedRecipes.find((r) => r && r.id === dataId);
-    if (byDataId) return byDataId;
-  }
-
-  // 3. Match by name
+  // 2. Match by exact normalized name
   const names = [
     item.sourceRecipeName,
     item.name,
     item.sourceRecipeData?.name,
+    item.sourceRecipeData?.menu?.name,
+    item.sourceRecipeData?.recipe,
   ]
     .filter(Boolean)
     .map((n) => String(n).trim().toLowerCase());
@@ -345,10 +359,38 @@ export function findMatchingRecipe(item, savedRecipes = []) {
     if (!name) continue;
     const byName = savedRecipes.find((r) => {
       if (!r) return false;
-      const rName = String(r.name || r.data?.name || '').trim().toLowerCase();
-      return rName === name;
+      const rNames = [
+        r.name,
+        r.data?.name,
+        r.data?.recipe,
+        r.menu?.name,
+      ]
+        .filter(Boolean)
+        .map((n) => String(n).trim().toLowerCase());
+      return rNames.includes(name);
     });
     if (byName) return byName;
+  }
+
+  // 3. Match by canonical alphanumeric name (ignoring commas, spaces, dashes, quotes, etc.)
+  const canonicalNames = names
+    .map(canonicalRecipeName)
+    .filter((n) => n.length > 0);
+
+  for (const cName of canonicalNames) {
+    const byCanonical = savedRecipes.find((r) => {
+      if (!r) return false;
+      const rCanonicals = [
+        r.name,
+        r.data?.name,
+        r.data?.recipe,
+        r.menu?.name,
+      ]
+        .filter(Boolean)
+        .map(canonicalRecipeName);
+      return rCanonicals.includes(cName);
+    });
+    if (byCanonical) return byCanonical;
   }
 
   return null;

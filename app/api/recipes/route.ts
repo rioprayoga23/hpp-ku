@@ -62,6 +62,12 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function canonicalRecipeName(name: unknown): string {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 function recipeCost(row: RecipeRow) {
   const menu = normalizeMenu({
     ...row.data,
@@ -114,28 +120,85 @@ async function syncDependentRecipes(
         if (item.kind !== 'recipe') return item;
 
         let source: RecipeRow | undefined = undefined;
-        const referencedId =
-          typeof item.sourceRecipeId === 'string' ? item.sourceRecipeId : null;
-        if (referencedId && updatedSourceIds.has(referencedId)) {
-          source = byId.get(referencedId);
-        } else {
+
+        // 1. Match by ID against updatedSourceIds
+        const itemIds = [
+          typeof item.sourceRecipeId === 'string' ? item.sourceRecipeId : null,
+          isRecord(item.sourceRecipeData) &&
+          typeof item.sourceRecipeData.id === 'string'
+            ? item.sourceRecipeData.id
+            : null,
+        ].filter((id): id is string => Boolean(id));
+
+        for (const targetId of itemIds) {
+          if (updatedSourceIds.has(targetId)) {
+            source = byId.get(targetId);
+            if (source) break;
+          }
+        }
+
+        // 2. Match by exact normalized name
+        if (!source) {
+          const itemNames = [
+            typeof item.sourceRecipeName === 'string'
+              ? item.sourceRecipeName
+              : null,
+            typeof item.name === 'string' ? item.name : null,
+            isRecord(item.sourceRecipeData) &&
+            typeof item.sourceRecipeData.name === 'string'
+              ? item.sourceRecipeData.name
+              : null,
+          ]
+            .filter((n): n is string => Boolean(n))
+            .map((n) => n.trim().toLowerCase());
+
           for (const updId of updatedSourceIds) {
             const candidate = byId.get(updId);
             if (!candidate) continue;
-            const candName = String(
-              candidate.name || candidate.data?.name || ''
-            )
-              .trim()
-              .toLowerCase();
-            const itemName = String(item.sourceRecipeName || item.name || '')
-              .trim()
-              .toLowerCase();
-            if (candName && candName === itemName) {
+            const candNames = [
+              candidate.name,
+              isRecord(candidate.data) &&
+              typeof candidate.data.name === 'string'
+                ? candidate.data.name
+                : null,
+            ]
+              .filter((n): n is string => Boolean(n))
+              .map((n) => n.trim().toLowerCase());
+
+            if (candNames.some((c) => itemNames.includes(c))) {
               source = candidate;
               break;
             }
           }
         }
+
+        // 3. Match by canonical alphanumeric name (ignoring spaces, punctuation, quotes)
+        if (!source) {
+          const itemCanonicals = [
+            item.sourceRecipeName,
+            item.name,
+            isRecord(item.sourceRecipeData) ? item.sourceRecipeData.name : null,
+          ]
+            .map(canonicalRecipeName)
+            .filter((n) => n.length > 0);
+
+          for (const updId of updatedSourceIds) {
+            const candidate = byId.get(updId);
+            if (!candidate) continue;
+            const candCanonicals = [
+              candidate.name,
+              isRecord(candidate.data) ? candidate.data.name : null,
+            ]
+              .map(canonicalRecipeName)
+              .filter((n) => n.length > 0);
+
+            if (candCanonicals.some((c) => itemCanonicals.includes(c))) {
+              source = candidate;
+              break;
+            }
+          }
+        }
+
         if (!source) return item;
 
         const sourceName =
